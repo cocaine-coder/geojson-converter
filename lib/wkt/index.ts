@@ -1,4 +1,4 @@
-export function toWKT(geometry: GeoJSON.Geometry, includeZ: boolean): string {
+export function toWKT(geometry: GeoJSON.Geometry, includeZ?: boolean): string {
   let wkt = geometry.type.toUpperCase() + " ";
   if (includeZ) wkt += "Z ";
 
@@ -43,7 +43,7 @@ export function toWKT(geometry: GeoJSON.Geometry, includeZ: boolean): string {
   return wkt;
 }
 
-function positionToWKT(position: GeoJSON.Position, includeZ: boolean): string {
+function positionToWKT(position: GeoJSON.Position, includeZ?: boolean): string {
   const x = position[0] ?? 0;
   const y = position[1] ?? 0;
   const z = position[2] ?? 0;
@@ -56,9 +56,31 @@ function positionToWKT(position: GeoJSON.Position, includeZ: boolean): string {
 }
 
 export function fromWKT(wkt: string): GeoJSON.Geometry {
-  wkt = wkt.trim();
+  wkt = wkt.trim().toUpperCase();
 
   if (wkt.startsWith("GEOMETRYCOLLECTION")) {
+    wkt = wkt.substring("GEOMETRYCOLLECTION".length, wkt.length - 1).replaceAll("\n", "");
+    const ret = { type: "GeometryCollection", geometries: [] } as GeoJSON.GeometryCollection;
+
+    let subWKT = "";
+    let typeChar = true;
+    for (let i = 0; i < wkt.length; i++) {
+      const c = wkt[i];
+      if (c >= "A" && c <= "Z") {
+        if (subWKT === "" || typeChar) {
+          subWKT += c;
+        } else {
+          ret.geometries.push(fromWKT(subWKT.trim().slice(0, -1)));
+          subWKT = c;
+        }
+        typeChar = true;
+      } else {
+        subWKT += c;
+        typeChar = false;
+      }
+    }
+
+    return ret;
   } else {
     //匹配括号中的数据(包括括号)
     const temp = wkt.replaceAll("\n", "").match(/\((.+?)\)/g);
@@ -83,10 +105,23 @@ export function fromWKT(wkt: string): GeoJSON.Geometry {
         coordinates,
       };
     } else if (wkt.startsWith("MULTIPOLYGON")) {
+      const ret = { type: "MultiPolygon", coordinates: [] } as GeoJSON.MultiPolygon;
+      temp!.forEach(item => {
+        if (item.lastIndexOf("(") !== 0) {
+          // 新的多边形
+          ret.coordinates.push([item.split(",").map(parsePosition)])
+        } else {
+          // 洞
+          ret.coordinates[ret.coordinates.length - 1].push(item.split(",").map(parsePosition))
+        }
+      });
+      return ret;
     }
+
+    throw new Error(`不支持的wkt: ${wkt}`);
   }
 }
 
 function parsePosition(str: string): GeoJSON.Position {
-  return str.trim().replace(/\(|\)/g, "").split(" ").map(parseFloat);
+  return str.trim().replace(/\(|\)/g, "").split(" ").filter(x => x !== "").map(parseFloat);
 }
