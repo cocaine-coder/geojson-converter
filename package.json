@@ -23,6 +23,6 @@
     "vite-plugin-dts": "^4.5.4"
   },
   "dependencies": {
-    "geojson": "^0.5.0"
+    "@types/geojson": "^7946.0.16"
   }
 }
