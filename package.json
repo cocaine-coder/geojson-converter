@@ -1,0 +1,28 @@
+{
+  "name": "ts-shp",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "files": [
+    "dist"
+  ],
+  "main": "./dist/index.umd.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    "types": "./dist/index.d.ts",
+    "import": "./dist/index.js",
+    "require": "./dist/index.umd.cjs"
+  },
+  "scripts": {
+    "build": "tsc && vite build"
+  },
+  "devDependencies": {
+    "typescript": "~5.9.2",
+    "vite": "^7.1.5",
+    "vite-plugin-dts": "^4.5.4"
+  },
+  "dependencies": {
+    "geojson": "^0.5.0"
+  }
+}
