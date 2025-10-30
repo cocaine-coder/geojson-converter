@@ -1,0 +1,54 @@
+/**
+ *  position             Field Name     Type                     Byte Order        Length
+ *  0                    Shape Type     Integer                  Little Endian     4
+ *  4                    Box            Double[4]                Little Endian     8 * 4
+ *  36                   NumParts       Double                   Little Endian     4
+ *  40                   NumPoints      Double                   Little Endian     4
+ *  44                   Parts          Integer[NumParts]        Little Endian     4 * NumParts
+ *  44 + 4 * NumParts    Points         Double[2 * NumPoints]    Little Endian     8 * 2 * NumPoints
+ */
+
+
+import { ShpRecord } from "./shp-record";
+import { isClockwise } from '../../../utils';
+
+export class PolygonRecord extends ShpRecord<GeoJSON.Polygon | GeoJSON.MultiPolygon> {
+    protected onRead(view: DataView, byteOffset: number): GeoJSON.Polygon | GeoJSON.MultiPolygon {
+        const bbox = this.readArrayFloat64(view, byteOffset + 4, 4) as GeoJSON.BBox;
+        const numParts = view.getInt32(byteOffset + 36, true);
+        const numPoints = view.getInt32(byteOffset + 40, true);
+        const parts = this.readArrayInt32(view, byteOffset + 44, numParts);
+        const coordinates = this.readCoordinates(view, byteOffset + 44 + 4 * numParts, numPoints);
+
+        const polygons = parts.reduce((p, seek, i, arr) => {
+            const nextSeek = arr[i + 1];
+            const ring = coordinates.slice(seek, nextSeek);
+
+            if (isClockwise(ring) === false) {
+                // 如果逆时针则为左侧多边形的洞
+                p[p.length - 1].push(ring);
+            } else {
+                // 顺时针为新的多边形
+                p.push([ring]);
+            }
+            return p;
+        }, [] as GeoJSON.Position[][][]);
+
+        if (polygons.length === 1) {
+            return {
+                type: "Polygon",
+                bbox,
+                coordinates: polygons[0]
+            }
+        } else {
+            return {
+                type: 'MultiPolygon',
+                bbox,
+                coordinates: polygons
+            }
+        }
+    }
+    protected onWrite(view: DataView, byteOffset: number, geometry: GeoJSON.Polygon | GeoJSON.MultiPolygon): number {
+        return 0;
+    }
+}
