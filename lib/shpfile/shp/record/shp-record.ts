@@ -10,15 +10,16 @@ export abstract class ShpRecord<TGeometry extends GeoJSON.Geometry = GeoJSON.Geo
     return this._geometry;
   }
 
-  constructor(num?: number, geometry?: TGeometry) {
-    this._recordNumber = num;
-    this._geometry = geometry;
+  constructor() {
   }
 
-  write(num:number, geometry: GeoJSON.Geometry): ArrayBuffer {
-      // 写头文件
+  write(num: number, geometry: TGeometry): ArrayBuffer {
+    this._recordNumber = num;
+    this._geometry = geometry;
 
-      // 写几何体
+    // 写头文件
+
+    // 写几何体
   }
 
   read(view: DataView, byteOffset: number): number {
