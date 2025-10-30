@@ -15,13 +15,10 @@ export abstract class ShpRecord<TGeometry extends GeoJSON.Geometry = GeoJSON.Geo
     this._geometry = geometry;
   }
 
-  write(view: DataView, byteOffset: number): number {
-    if (!this.geometry) {
-      console.warn("Geometry is undefined, cannot write ShpRecord.");
-      return byteOffset;
-    }
+  write(num:number, geometry: GeoJSON.Geometry): ArrayBuffer {
+      // 写头文件
 
-    return this.onWrite(view, byteOffset, this.geometry);
+      // 写几何体
   }
 
   read(view: DataView, byteOffset: number): number {
@@ -45,7 +42,7 @@ export abstract class ShpRecord<TGeometry extends GeoJSON.Geometry = GeoJSON.Geo
     view: DataView,
     byteOffset: number,
     geometry: TGeometry
-  ): number;
+  ): void;
 
   protected readCoordinates(view: DataView, byteOffset: number): GeoJSON.Position;
   protected readCoordinates(view: DataView, byteOffset: number, numPoints: number): GeoJSON.Position[];

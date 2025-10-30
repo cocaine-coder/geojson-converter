@@ -19,7 +19,6 @@ export class PointRecord extends ShpRecord<GeoJSON.Point> {
     view: DataView,
     byteOffset: number,
     geometry: GeoJSON.Point
-  ): number {
-    return byteOffset;
+  ): void {
   }
 }

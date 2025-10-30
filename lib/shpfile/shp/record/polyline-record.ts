@@ -39,7 +39,7 @@ export class PolylineRecord extends ShpRecord<GeoJSON.LineString | GeoJSON.Multi
         }
     }
 
-    protected onWrite(view: DataView, byteOffset: number, geometry: GeoJSON.LineString | GeoJSON.MultiLineString): number {
-        return 0;
+    protected onWrite(view: DataView, byteOffset: number, geometry: GeoJSON.LineString | GeoJSON.MultiLineString): void {
+    
     }
 }

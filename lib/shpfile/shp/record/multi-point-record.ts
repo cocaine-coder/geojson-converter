@@ -20,7 +20,7 @@ export class MultiPointRecord extends ShpRecord<GeoJSON.MultiPoint> {
         }
     }
 
-    protected onWrite(view: DataView, byteOffset: number, geometry: GeoJSON.MultiPoint): number {
-        return 0;
+    protected onWrite(view: DataView, byteOffset: number, geometry: GeoJSON.MultiPoint): void {
+        
     }
 }

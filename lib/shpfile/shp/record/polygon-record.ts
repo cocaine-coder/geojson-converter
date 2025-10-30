@@ -48,7 +48,7 @@ export class PolygonRecord extends ShpRecord<GeoJSON.Polygon | GeoJSON.MultiPoly
             }
         }
     }
-    protected onWrite(view: DataView, byteOffset: number, geometry: GeoJSON.Polygon | GeoJSON.MultiPolygon): number {
-        return 0;
+    protected onWrite(view: DataView, byteOffset: number, geometry: GeoJSON.Polygon | GeoJSON.MultiPolygon): void {
+        
     }
 }
