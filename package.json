@@ -18,9 +18,11 @@
     "build": "tsc && vite build"
   },
   "devDependencies": {
+    "@types/node": "^24.9.2",
     "typescript": "~5.9.2",
     "vite": "^7.1.5",
-    "vite-plugin-dts": "^4.5.4"
+    "vite-plugin-dts": "^4.5.4",
+    "vitest": "^4.0.4"
   },
   "dependencies": {
     "@types/geojson": "^7946.0.16"
