@@ -46,7 +46,6 @@ export class MultiPointZRecord extends MultiPointRecord {
         view.setFloat64(16 + 8 * zs.length + 8, 0, true);
         this.setArrayFloat64(view, 16 + 8 * zs.length + 16, Array(coordinates.length).fill(0));
 
-        const firstArrayBuffer = super.onWrite(geometry);
-        return mergeArrayBuffers([firstArrayBuffer, view.buffer]);
+        return mergeArrayBuffers([super.onWrite(geometry), view.buffer]);
     }
 }

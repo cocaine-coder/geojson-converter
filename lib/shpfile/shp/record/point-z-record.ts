@@ -25,7 +25,6 @@ export class PointZRecord extends PointRecord {
         view.setFloat64(4, z ?? 0, true);
         view.setFloat64(4, 0, true);
 
-        const firstArrayBuffer = super.onWrite(geometry);
-        return mergeArrayBuffers([firstArrayBuffer, view.buffer]);
+        return mergeArrayBuffers([super.onWrite(geometry), view.buffer]);
     }
 }

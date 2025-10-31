@@ -30,3 +30,16 @@ export function readShp(options: {
 
   return { records, shapeType };
 }
+
+export function writeShp(options: {
+  data: Array<GeoJSON.Point> |
+  Array<GeoJSON.MultiPoint> |
+  Array<GeoJSON.LineString | GeoJSON.MultiLineString> |
+  Array<GeoJSON.Polygon | GeoJSON.MultiPolygon> |
+  Array<GeoJSON.Feature<GeoJSON.Point>> |
+  Array<GeoJSON.Feature<GeoJSON.MultiPoint>> |
+  Array<GeoJSON.Feature<GeoJSON.LineString | GeoJSON.MultiLineString>> |
+  Array<GeoJSON.Feature<GeoJSON.Polygon | GeoJSON.MultiPolygon>>
+}) {
+  
+}

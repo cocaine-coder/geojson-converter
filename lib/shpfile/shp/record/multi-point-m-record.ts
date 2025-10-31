@@ -11,8 +11,18 @@
  * X = 40 + (2 * 8 * NumPoints)
  */
 
+import { flatGeometry, mergeArrayBuffers } from "../../../utils";
 import { MultiPointRecord } from "./multi-point-record";
 
-export class MultiPointMRecord extends MultiPointRecord{
+export class MultiPointMRecord extends MultiPointRecord {
+    protected onWrite(geometry: GeoJSON.MultiPoint): ArrayBuffer {
+        const coordinates = flatGeometry(geometry);
 
+        const view = new DataView(new ArrayBuffer(16 + 8 * coordinates.length));
+        view.setFloat64(0, 0, true);
+        view.setFloat64(8, 0, true);
+        this.setArrayFloat64(view, 16, Array(coordinates.length).fill(0));
+
+        return mergeArrayBuffers([super.onWrite(geometry), view.buffer]);
+    }
 }
