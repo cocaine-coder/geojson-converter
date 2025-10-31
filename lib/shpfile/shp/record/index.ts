@@ -30,11 +30,15 @@ export const shapetype_record_read_map = new Map<ShapeType, () => ShpRecord>([
     [ShapeType.PolygonZM, () => new PolygonZRecord()],
 ]);
 
-export const geojson_record_write_map = new Map<GeoJSON.GeoJsonTypes, ()=> ShpRecord>([
+export const geojson_record_write_map = new Map<GeoJSON.GeoJsonTypes, () => ShpRecord>([
     ['Point', () => new PointRecord()],
-    ['MultiPoint', ()=> new MultiPointRecord()]
-]); 
+    ['MultiPoint', () => new MultiPointRecord()],
+    ['LineString', () => new PolylineRecord()],
+    ['MultiLineString', () => new PolylineRecord()],
+    ['Polygon', () => new PolygonRecord()],
+    ['MultiPolygon', () => new PolygonRecord()],
+]);
 
 export {
     ShpRecord
-}
+} 

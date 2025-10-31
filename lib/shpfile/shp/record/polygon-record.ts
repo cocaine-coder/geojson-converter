@@ -10,7 +10,8 @@
 
 
 import { ShpRecord } from "./shp-record";
-import { isClockwise } from '../../../utils';
+import { bbox, flatGeometry, isClockwise } from '../../../utils';
+import { ShapeType } from "../../shape-type";
 
 export class PolygonRecord extends ShpRecord<GeoJSON.Polygon | GeoJSON.MultiPolygon> {
     protected onRead(view: DataView, byteOffset: number): GeoJSON.Polygon | GeoJSON.MultiPolygon {
@@ -48,7 +49,22 @@ export class PolygonRecord extends ShpRecord<GeoJSON.Polygon | GeoJSON.MultiPoly
             }
         }
     }
-    protected onWrite(view: DataView, byteOffset: number, geometry: GeoJSON.Polygon | GeoJSON.MultiPolygon): void {
-        
+    protected onWrite(geometry: GeoJSON.Polygon | GeoJSON.MultiPolygon): ArrayBuffer {
+        const geoType = geometry.type;
+        const box = bbox(geometry);
+        const coordinates = flatGeometry(geometry);
+        const numParts = geoType === 'Polygon' ? geometry.coordinates.length : geometry.coordinates.reduce((p, c) => p + c.length, 0);
+        const parts = geoType === 'Polygon' ? geometry.coordinates.map(ring => coordinates.indexOf(ring[0])) :
+            geometry.coordinates.reduce((p, c) => [...p, ...c.map(ring => coordinates.indexOf(ring[0]))], [] as number[]);
+
+        const view = new DataView(new ArrayBuffer(44 + 4 * numParts + 8 * 2 * coordinates.length));
+        view.setInt32(0, ShapeType.Polygon, true);
+        this.setArrayFloat64(view, 4, box);
+        view.setInt32(36, numParts, true);
+        view.setInt32(40, coordinates.length, true);
+        this.setArrayInt32(view, 44, parts);
+        this.writeCoordinates(view, 44 + 4 * numParts, coordinates);
+
+        return view.buffer;
     }
 }

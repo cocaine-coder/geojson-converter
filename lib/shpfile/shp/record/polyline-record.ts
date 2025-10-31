@@ -8,6 +8,8 @@
  *  44 + 4 * NumParts    Points         Double[2 * NumPoints]    Little Endian     8 * 2 * NumPoints
  */
 
+import { bbox, flatGeometry } from "../../../utils";
+import { ShapeType } from "../../shape-type";
 import { ShpRecord } from "./shp-record";
 
 export class PolylineRecord extends ShpRecord<GeoJSON.LineString | GeoJSON.MultiLineString> {
@@ -18,19 +20,19 @@ export class PolylineRecord extends ShpRecord<GeoJSON.LineString | GeoJSON.Multi
         const parts = this.readArrayInt32(view, byteOffset + 44, numParts);
         const coordinates = this.readCoordinates(view, byteOffset + 44 + 4 * numParts, numPoints);
 
-        const lines = parts.reduce((p, seek, i, arr)=>{
+        const lines = parts.reduce((p, seek, i, arr) => {
             const nextSeek = arr[i + 1];
             p.push(coordinates.slice(seek, nextSeek));
             return p;
         }, [] as GeoJSON.Position[][]);
 
-        if(lines.length === 1){
+        if (lines.length === 1) {
             return {
                 type: "LineString",
                 bbox,
                 coordinates: lines[0]
             }
-        }else{
+        } else {
             return {
                 type: "MultiLineString",
                 bbox,
@@ -39,7 +41,21 @@ export class PolylineRecord extends ShpRecord<GeoJSON.LineString | GeoJSON.Multi
         }
     }
 
-    protected onWrite(view: DataView, byteOffset: number, geometry: GeoJSON.LineString | GeoJSON.MultiLineString): void {
-    
+    protected onWrite(geometry: GeoJSON.LineString | GeoJSON.MultiLineString): ArrayBuffer {
+        const geoType = geometry.type;
+        const coordinates = flatGeometry(geometry);
+        const box = bbox(geometry);
+        const numParts = geoType === 'LineString' ? 1 : geometry.coordinates.length;
+        const parts = geoType === 'LineString' ? [0] : geometry.coordinates.map(line => coordinates.indexOf(line[0]));
+
+        const view = new DataView(new ArrayBuffer(44 + 4 * numParts + 8 * 2 * coordinates.length));
+        view.setInt32(0, ShapeType.PolyLine, true);
+        this.setArrayFloat64(view, 4, box);
+        view.setInt32(36, numParts, true);
+        view.setInt32(40, coordinates.length, true);
+        this.setArrayInt32(view, 44, parts);
+        this.writeCoordinates(view, 44 + 4 * numParts, coordinates);
+
+        return view.buffer;
     }
 }

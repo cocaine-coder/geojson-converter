@@ -1,9 +1,11 @@
-export abstract class ShpRecord<TGeometry extends GeoJSON.Geometry = GeoJSON.Geometry> {
-  private _geometry: TGeometry | undefined;
-  private _recordNumber: number | undefined;
+import { mergeArrayBuffers } from "../../../utils";
 
-  get recordNumber(): number | undefined {
-    return this._recordNumber;
+export abstract class ShpRecord<TGeometry extends GeoJSON.Geometry = GeoJSON.Geometry> {
+  private _num: number | undefined;
+  private _geometry: TGeometry | undefined;
+
+  get num(): number | undefined {
+    return this._num;
   }
 
   get geometry(): TGeometry | undefined {
@@ -13,18 +15,30 @@ export abstract class ShpRecord<TGeometry extends GeoJSON.Geometry = GeoJSON.Geo
   constructor() {
   }
 
-  write(num: number, geometry: TGeometry): ArrayBuffer {
-    this._recordNumber = num;
-    this._geometry = geometry;
+  write(options: { num: number, geometry: TGeometry } | ShpRecord<TGeometry>): ArrayBuffer {
+    if (!options.geometry || options.num === undefined) {
+      throw new Error("num or geometry is undefined");
+    }
 
-    // 写头文件
+    if (options.geometry.type === "GeometryCollection") {
+      throw new Error("GeometryCollection is not supported");
+    }
 
-    // 写几何体
+    this._num = options.num;
+    this._geometry = options.geometry;
+
+    const headerArrayBuffer = new ArrayBuffer(8);
+    const headerView = new DataView(headerArrayBuffer);
+    headerView.setInt32(0, options.num, false);
+    const geometryArrayBuffer = this.onWrite(options.geometry);
+    headerView.setInt32(4, geometryArrayBuffer.byteLength / 2, false);
+
+    return mergeArrayBuffers([headerArrayBuffer, geometryArrayBuffer]);
   }
 
   read(view: DataView, byteOffset: number): number {
     // 读取记录头部 8 字节
-    this._recordNumber = view.getInt32(byteOffset, false);
+    this._num = view.getInt32(byteOffset, false);
     const contentLength = view.getInt32(byteOffset + 4, false) * 2;
 
     // 读取记录内容
@@ -40,10 +54,8 @@ export abstract class ShpRecord<TGeometry extends GeoJSON.Geometry = GeoJSON.Geo
   ): TGeometry;
 
   protected abstract onWrite(
-    view: DataView,
-    byteOffset: number,
     geometry: TGeometry
-  ): void;
+  ): ArrayBuffer;
 
   protected readCoordinates(view: DataView, byteOffset: number): GeoJSON.Position;
   protected readCoordinates(view: DataView, byteOffset: number, numPoints: number): GeoJSON.Position[];
@@ -63,11 +75,26 @@ export abstract class ShpRecord<TGeometry extends GeoJSON.Geometry = GeoJSON.Geo
     return [x, y];
   }
 
-  protected readArrayInt32(view: DataView, byteOffset: number, length: number): number[] {
-    return Array.from({ length }, (_, i) => view.getInt32(byteOffset + i * 4, true));
+  protected writeCoordinates(view: DataView, byteOffset: number, coordinates: GeoJSON.Position[]) {
+    coordinates.forEach((coordinate, i) => {
+      view.setFloat64(byteOffset + 16 * i, coordinate[0], true);
+      view.setFloat64(byteOffset + 16 * i + 8, coordinate[1], true);
+    });
   }
 
-  protected readArrayFloat64(view: DataView, byteOffset: number, length: number): number[] {
-    return Array.from({ length }, (_, i) => view.getFloat64(byteOffset + i * 8, true));
+  protected readArrayInt32(view: DataView, byteOffset: number, length: number, littleEndian: boolean = true): number[] {
+    return Array.from({ length }, (_, i) => view.getInt32(byteOffset + i * 4, littleEndian));
+  }
+
+  protected readArrayFloat64(view: DataView, byteOffset: number, length: number, littleEndian: boolean = true): number[] {
+    return Array.from({ length }, (_, i) => view.getFloat64(byteOffset + i * 8, littleEndian));
+  }
+
+  protected setArrayInt32(view: DataView, byteOffset: number, array: number[], littleEndian: boolean = true) {
+    array.forEach((value, i) => view.setInt32(byteOffset + i * 4, value, littleEndian));
+  }
+
+  protected setArrayFloat64(view: DataView, byteOffset: number, array: number[], littleEndian: boolean = true) {
+    array.forEach((value, i) => view.setFloat64(byteOffset + i * 8, value, littleEndian));
   }
 }

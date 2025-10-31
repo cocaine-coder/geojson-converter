@@ -5,6 +5,7 @@
  * 12             Y               Double        Little Endian       8
  */
 
+import { ShapeType } from "../../shape-type";
 import { ShpRecord } from "./shp-record";
 
 export class PointRecord extends ShpRecord<GeoJSON.Point> {
@@ -15,10 +16,12 @@ export class PointRecord extends ShpRecord<GeoJSON.Point> {
     };
   }
 
-  protected onWrite(
-    view: DataView,
-    byteOffset: number,
-    geometry: GeoJSON.Point
-  ): void {
+  protected onWrite(geometry: GeoJSON.Point): ArrayBuffer {
+    const view = new DataView(new ArrayBuffer(20));
+
+    view.setInt32(0, ShapeType.Point, true);
+    this.writeCoordinates(view, 4, [geometry.coordinates]);
+
+    return view.buffer;
   }
 }

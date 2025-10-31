@@ -32,3 +32,32 @@ export function flatGeometry(geometry: GeoJSON.Geometry): Array<GeoJSON.Position
         case "GeometryCollection": return geometry.geometries.reduce((acc, geometry) => acc.concat(flatGeometry(geometry)), [] as Array<GeoJSON.Position>);
     }
 }
+
+export function mergeArrayBuffers(arrayBuffers: Array<ArrayBuffer>) {
+    const totalLength = arrayBuffers.reduce((acc, buffer) => acc + buffer.byteLength, 0);
+    const mergedArrayBuffer = new ArrayBuffer(totalLength);
+    const resultView = new Uint8Array(mergedArrayBuffer);
+
+    let offset = 0;
+    for (const buffer of arrayBuffers) {
+        resultView.set(new Uint8Array(buffer), offset);
+        offset += buffer.byteLength;
+    }
+
+    return mergedArrayBuffer;
+}
+
+export function bbox(geometry:GeoJSON.Geometry){
+    const coordinates = flatGeometry(geometry);
+
+    let xmin = Infinity, xmax = -Infinity, ymin = Infinity, ymax = -Infinity;
+
+    coordinates.forEach(coord=>{
+        xmin = Math.min(xmin, coord[0]);
+        xmax = Math.max(xmax, coord[0]);
+        ymin = Math.min(ymin, coord[1]);
+        ymax = Math.max(ymax, coord[1]);
+    });
+
+    return [xmin, ymin, xmax, ymax];
+}

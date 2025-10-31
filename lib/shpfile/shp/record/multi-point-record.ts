@@ -6,6 +6,8 @@
  * 40          Points            Double[2 * NumPoints]      Little Endian       8 * 2 * NumPoints
  */
 
+import { bbox, flatGeometry } from "../../../utils";
+import { ShapeType } from "../../shape-type";
 import { ShpRecord } from "./shp-record";
 
 export class MultiPointRecord extends ShpRecord<GeoJSON.MultiPoint> {
@@ -20,7 +22,16 @@ export class MultiPointRecord extends ShpRecord<GeoJSON.MultiPoint> {
         }
     }
 
-    protected onWrite(view: DataView, byteOffset: number, geometry: GeoJSON.MultiPoint): void {
-        
+    protected onWrite(geometry: GeoJSON.MultiPoint): ArrayBuffer {
+        const coordinates = flatGeometry(geometry);
+        const view = new DataView(new ArrayBuffer(20 + 16 * coordinates.length));
+
+        const box = bbox(geometry);
+        view.setInt32(0, ShapeType.MultiPoint, true);
+        this.setArrayFloat64(view, 4, box);
+        view.setInt32(36, coordinates.length, true);
+        this.writeCoordinates(view, 40, coordinates);
+
+        return view.buffer;
     }
 }

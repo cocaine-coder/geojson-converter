@@ -15,6 +15,7 @@
  * Y = X + 16 + 8 * NumPoints
  */
 
+import { flatGeometry, mergeArrayBuffers } from "../../../utils";
 import { MultiPointRecord } from "./multi-point-record";
 
 export class MultiPointZRecord extends MultiPointRecord {
@@ -29,5 +30,23 @@ export class MultiPointZRecord extends MultiPointRecord {
         });
 
         return multiPoint;
+    }
+
+    protected onWrite(geometry: GeoJSON.MultiPoint): ArrayBuffer {
+        const coordinates = flatGeometry(geometry);
+        const zs = coordinates.map(coord => coord[2] ?? 0);
+        const minZ = Math.min(...zs);
+        const maxZ = Math.max(...zs);
+
+        const view = new DataView(new ArrayBuffer(2 * (16 + 8 * zs.length)));
+        view.setFloat64(0, minZ, true);
+        view.setFloat64(8, maxZ, true);
+        this.setArrayFloat64(view, 16, zs);
+        view.setFloat64(16 + 8 * zs.length, 0, true);
+        view.setFloat64(16 + 8 * zs.length + 8, 0, true);
+        this.setArrayFloat64(view, 16 + 8 * zs.length + 16, Array(coordinates.length).fill(0));
+
+        const firstArrayBuffer = super.onWrite(geometry);
+        return mergeArrayBuffers([firstArrayBuffer, view.buffer]);
     }
 }

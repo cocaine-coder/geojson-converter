@@ -17,7 +17,7 @@
  *  Y = X + (2 * 8 * NumPoints)
  */
 
-import { flatGeometry } from "../../../utils";
+import { flatGeometry, mergeArrayBuffers } from "../../../utils";
 import { PolylineRecord } from "./polyline-record";
 
 export class PolylineZRecord extends PolylineRecord {
@@ -34,5 +34,23 @@ export class PolylineZRecord extends PolylineRecord {
         });
 
         return polyline;
+    }
+
+    protected onWrite(geometry: GeoJSON.LineString | GeoJSON.MultiLineString): ArrayBuffer {
+        const coordinates = flatGeometry(geometry);
+        const zs = coordinates.map(coord => coord[2]);
+        const minZ = Math.min(...zs);
+        const maxZ = Math.max(...zs);
+
+        const view = new DataView(new ArrayBuffer(2 * (16 + 8 * zs.length)));
+        view.setFloat64(0, minZ, true);
+        view.setFloat64(8, maxZ, true);
+        this.setArrayFloat64(view, 16, zs);
+        view.setFloat64(16 + (8 * zs.length), 0, true);
+        view.setFloat64(16 + (8 * zs.length) + 8, 0, true);
+        this.setArrayFloat64(view, 16 + (8 * zs.length) + 16, Array(coordinates.length).fill(0));
+
+        const firstArrayBuffer = super.onWrite(geometry);
+        return mergeArrayBuffers([firstArrayBuffer, view.buffer]);
     }
 }
