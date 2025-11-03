@@ -82,3 +82,7 @@ export const ldidToEncoding: { [key: number]: string } = {
     0x58: 'Windows-1252',
     0x59: 'Windows-1252',
 }
+
+export function getArrayBufferFromDataView(dataView: DataView, byteOffset: number, byteLength: number) {
+    return dataView.buffer.slice(dataView.byteOffset + byteOffset, dataView.byteOffset + byteOffset + byteLength);
+}
