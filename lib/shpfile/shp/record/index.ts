@@ -13,31 +13,54 @@ import { PolylineRecord } from './polyline-record';
 import { PolylineZRecord } from './polyline-z-record';
 import { ShpRecord } from './shp-record';
 
-export const shapetype_record_read_map = new Map<ShapeType, () => ShpRecord>([
-    [ShapeType.Point, () => new PointRecord()],
-    [ShapeType.PointM, () => new PointMRecord()],
-    [ShapeType.PointZM, () => new PointZRecord()],
-    [ShapeType.MultiPoint, () => new MultiPointRecord()],
-    [ShapeType.MultiPointM, () => new MultiPointMRecord()],
-    [ShapeType.MultiPointZM, () => new MultiPointZRecord()],
+export function createReadRecord(shapeType: ShapeType): ShpRecord {
+    switch (shapeType) {
+        case ShapeType.Point: return new PointRecord();
+        case ShapeType.PointM: return new PointMRecord();
+        case ShapeType.PointZM: return new PointZRecord();
+        case ShapeType.MultiPoint: return new MultiPointRecord();
+        case ShapeType.MultiPointM: return new MultiPointMRecord();
+        case ShapeType.MultiPointZM: return new MultiPointZRecord();
+        case ShapeType.PolyLine: return new PolylineRecord();
+        case ShapeType.PolyLineM: return new PolylineMRecord();
+        case ShapeType.PolyLineZM: return new PolylineZRecord();
+        case ShapeType.Polygon: return new PolygonRecord();
+        case ShapeType.PolygonM: return new PolygonMRecord();
+        case ShapeType.PolygonZM: return new PolygonZRecord();
+        case ShapeType.NullShape:
+        default:
+            throw new Error(`ShapeType ${shapeType} is not supported`);
+    }
+}
 
-    [ShapeType.PolyLine, () => new PolylineRecord()],
-    [ShapeType.PolyLineM, () => new PolylineMRecord()],
-    [ShapeType.PolygonZM, () => new PolylineZRecord()],
+export type TCanWriteGeoJSONGeometry = Exclude<GeoJSON.Geometry, GeoJSON.GeometryCollection>;
+export type TWriteExtraType = "M" | "Z";
 
-    [ShapeType.Polygon, () => new PolygonRecord()],
-    [ShapeType.PolygonM, () => new PolygonMRecord()],
-    [ShapeType.PolygonZM, () => new PolygonZRecord()],
-]);
+export function createWriteRecord(geojsonGeometryType: TCanWriteGeoJSONGeometry['type'], extra?: TWriteExtraType): [ShpRecord, ShapeType] {
+    switch (geojsonGeometryType) {
+        case 'Point':
+            if (extra === 'M') return [new PointMRecord(), ShapeType.PointM];
+            if (extra === 'Z') return [new PointZRecord(), ShapeType.PointZM];
+            return [new PointRecord(), ShapeType.Point];
 
-export const geojson_record_write_map = new Map<GeoJSON.GeoJsonTypes, () => ShpRecord>([
-    ['Point', () => new PointRecord()],
-    ['MultiPoint', () => new MultiPointRecord()],
-    ['LineString', () => new PolylineRecord()],
-    ['MultiLineString', () => new PolylineRecord()],
-    ['Polygon', () => new PolygonRecord()],
-    ['MultiPolygon', () => new PolygonRecord()],
-]);
+        case "MultiPoint":
+            if (extra === 'M') return [new MultiPointMRecord(), ShapeType.MultiPointM];
+            if (extra === 'Z') return [new MultiPointZRecord(), ShapeType.MultiPointZM];
+            return [new MultiPointRecord(), ShapeType.MultiPoint];
+
+        case "LineString":
+        case "MultiLineString":
+            if (extra === 'M') return [new PolylineMRecord(), ShapeType.PolyLineM];
+            if (extra === 'Z') return [new PolylineZRecord(), ShapeType.PolyLineZM];
+            return [new PolylineRecord(), ShapeType.PolyLine];
+
+        case "Polygon":
+        case "MultiPolygon":
+            if (extra === 'M') return [new PolygonMRecord(), ShapeType.PolygonM];
+            if (extra === 'Z') return [new PolygonZRecord(), ShapeType.PolygonZM];
+            return [new PolygonRecord(), ShapeType.Polygon];
+    }
+}
 
 export {
     ShpRecord

@@ -12,9 +12,6 @@ export abstract class ShpRecord<TGeometry extends GeoJSON.Geometry = GeoJSON.Geo
     return this._geometry;
   }
 
-  constructor() {
-  }
-
   write(options: { num: number, geometry: TGeometry } | ShpRecord<TGeometry>): ArrayBuffer {
     if (!options.geometry || options.num === undefined) {
       throw new Error("num or geometry is undefined");
@@ -36,7 +33,7 @@ export abstract class ShpRecord<TGeometry extends GeoJSON.Geometry = GeoJSON.Geo
     return mergeArrayBuffers([headerArrayBuffer, geometryArrayBuffer]);
   }
 
-  read(view: DataView, byteOffset: number): number {
+  read(view: DataView, byteOffset: number): { geometry: TGeometry, recordLength: number } {
     // 读取记录头部 8 字节
     this._num = view.getInt32(byteOffset, false);
     const contentLength = view.getInt32(byteOffset + 4, false) * 2;
@@ -45,7 +42,7 @@ export abstract class ShpRecord<TGeometry extends GeoJSON.Geometry = GeoJSON.Geo
     this._geometry = this.onRead(view, byteOffset + 8);
 
     // 返回下一个记录的起始偏移
-    return byteOffset + 8 + contentLength;
+    return { geometry: this._geometry, recordLength: 8 + contentLength };
   }
 
   protected abstract onRead(
