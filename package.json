@@ -26,6 +26,7 @@
   },
   "dependencies": {
     "@types/geojson": "^7946.0.16",
+    "fast-xml-parser": "^5.3.1",
     "iconv-lite": "^0.7.0"
   }
 }
