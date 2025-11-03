@@ -25,6 +25,7 @@
     "vitest": "^4.0.4"
   },
   "dependencies": {
-    "@types/geojson": "^7946.0.16"
+    "@types/geojson": "^7946.0.16",
+    "iconv-lite": "^0.7.0"
   }
 }
