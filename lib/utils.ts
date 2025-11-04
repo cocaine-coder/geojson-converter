@@ -1,3 +1,8 @@
+/**
+ * 判断一组点是否是顺时针方向
+ * @param points 
+ * @returns 
+ */
 export function isClockwise(points: GeoJSON.Position[]): boolean | undefined {
     if (points.length < 3) {
         console.warn("Not enough points to determine clockwise direction.");
@@ -21,6 +26,11 @@ export function isClockwise(points: GeoJSON.Position[]): boolean | undefined {
     return undefined;
 }
 
+/**
+ * 将数据压平坐标数组
+ * @param geometry 
+ * @returns 
+ */
 export function flatGeometry(geometry: GeoJSON.Geometry | GeoJSON.Feature | Array<GeoJSON.Geometry> | Array<GeoJSON.Feature>): Array<GeoJSON.Position> {
     if (geometry instanceof Array) {
         return geometry.reduce((acc, item) => acc.concat(flatGeometry(item)), [] as Array<GeoJSON.Position>);
@@ -41,6 +51,12 @@ export function flatGeometry(geometry: GeoJSON.Geometry | GeoJSON.Feature | Arra
     }
 }
 
+/**
+ * 计算几何对象的边界框
+ * @param geometry 
+ * @param includeZ 
+ * @returns 
+ */
 export function bbox(geometry: GeoJSON.Geometry | Array<GeoJSON.Geometry> | Array<GeoJSON.Feature>, includeZ = false) {
     const coordinates = flatGeometry(geometry);
 
@@ -59,6 +75,37 @@ export function bbox(geometry: GeoJSON.Geometry | Array<GeoJSON.Geometry> | Arra
     return includeZ ? [...bbox, zmin, zmax] : bbox;
 }
 
+/**
+ * 获取编码
+ * @param ldid 
+ * @returns
+ */
+export const ldidToEncoding: { [key: number]: string } = {
+    0x98: "GBK",
+    0X4D: "GBK",
+    0x4F: "Big5",
+    0x03: 'Windows-1252',
+    0x57: 'Windows-1252',
+    0x58: 'Windows-1252',
+    0x59: 'Windows-1252',
+}
+
+/**
+ * 使用偏移获取DataView中的某一段ArrayBuffer
+ * @param dataView 
+ * @param byteOffset 
+ * @param byteLength 
+ * @returns 
+ */
+export function getArrayBufferFromDataView(dataView: DataView, byteOffset: number, byteLength: number) {
+    return dataView.buffer.slice(dataView.byteOffset + byteOffset, dataView.byteOffset + byteOffset + byteLength);
+}
+
+/**
+ * 合并多个ArrayBuffers
+ * @param arrayBuffers 
+ * @returns 
+ */
 export function mergeArrayBuffers(arrayBuffers: Array<ArrayBuffer>) {
     const totalLength = arrayBuffers.reduce((acc, buffer) => acc + buffer.byteLength, 0);
     const mergedArrayBuffer = new ArrayBuffer(totalLength);
@@ -71,18 +118,4 @@ export function mergeArrayBuffers(arrayBuffers: Array<ArrayBuffer>) {
     }
 
     return mergedArrayBuffer;
-}
-
-export const ldidToEncoding: { [key: number]: string } = {
-    0x98: "GBK",
-    0X4D: "GBK",
-    0x4F: "Big5",
-    0x03: 'Windows-1252',
-    0x57: 'Windows-1252',
-    0x58: 'Windows-1252',
-    0x59: 'Windows-1252',
-}
-
-export function getArrayBufferFromDataView(dataView: DataView, byteOffset: number, byteLength: number) {
-    return dataView.buffer.slice(dataView.byteOffset + byteOffset, dataView.byteOffset + byteOffset + byteLength);
 }

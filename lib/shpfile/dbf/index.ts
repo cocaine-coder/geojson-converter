@@ -52,10 +52,10 @@ export function readDbf(options: {
         let recordOffset = offset;
 
         // 检查删除标记
-        const deleteFlag = String.fromCharCode(dataView.getUint8(recordOffset));
+        const deleteFlag = dataView.getUint8(recordOffset);
         recordOffset += 1; // 跳过删除标识
 
-        if (deleteFlag !== '*') {
+        if (deleteFlag !== 0x2A) {
             for (const field of fields) {
                 const rawValue = textDecoder.decode(getArrayBufferFromDataView(dataView, recordOffset, field.length))?.trim();
                 let parsedValue: any = rawValue;
@@ -93,6 +93,9 @@ export function readDbf(options: {
         }
 
         offset += header.recordLength;
+
+        console.log(recordOffset);
+        console.log(offset);
     }
 
     return records;
@@ -107,6 +110,6 @@ export function writeDbf(options: {
     }
 
     const propertiesArrayBuffers = options.data.map(item => {
-        
+
     });
 }
