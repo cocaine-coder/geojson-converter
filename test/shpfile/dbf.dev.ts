@@ -1,7 +1,6 @@
 import * as fs from 'fs';
 import { readDbf } from '../../lib/shpfile/dbf';
 
-const file = fs.readFileSync("../mock/shp/点/点.dbf");
-const records = readDbf({file});
+import iconv from 'iconv-lite';
 
-console.log(records);
+const file = fs.readFileSync("../mock/shp/点/点.dbf");

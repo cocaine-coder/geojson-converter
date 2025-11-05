@@ -7,7 +7,7 @@ export interface DbfHeader {
 
 export interface DbfField {
   name: string;
-  type: string;
+  type: "N" | "F" | "I" | "D" | "L" | "C";
   length: number;
   decimalPlaces: number;
 }

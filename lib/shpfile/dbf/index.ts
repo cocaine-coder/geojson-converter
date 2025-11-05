@@ -37,7 +37,7 @@ export function readDbf(options: {
         }
 
         const name = textDecoder.decode(getArrayBufferFromDataView(dataView, offset, nameLength));
-        const type = String.fromCharCode(dataView.getUint8(offset + 11));
+        const type = String.fromCharCode(dataView.getUint8(offset + 11)) as DbfField["type"];
         const length = dataView.getUint8(offset + 16);
         const decimalPlaces = dataView.getUint8(offset + 17);
 
@@ -93,9 +93,6 @@ export function readDbf(options: {
         }
 
         offset += header.recordLength;
-
-        console.log(recordOffset);
-        console.log(offset);
     }
 
     return records;
