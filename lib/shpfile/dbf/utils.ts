@@ -1,27 +1,17 @@
 import iconv from 'iconv-lite';
 import { DbfField } from './type';
 
-export function getDbfFields(data: Array<{ [key: string]: any }> | Array<GeoJSON.Feature>, encoding?: string): Array<DbfField> {
-    const fields = new Array<DbfField>();
 
-    encoding ??= 'utf-8';
+type TBaseType = "string" | "number" | "bigint" | "boolean" | "undefined" | "object";
+
+/**
+ * 确定filed 及其类型
+ * @param data 
+ */
+export function getFieldDefs(data: Array<GeoJSON.GeoJsonProperties> | Array<GeoJSON.Feature>): Array<DbfField> {
+    const map = new Map<string, Map<TBaseType, DbfField | undefined>>();
 
     data.forEach((item, index) => {
-
-        const isLast = index === data.length - 1;
-
-        for (const key in item) {
-            const value = item[key];
-            const valueType = typeof value;
-
-            // 最后一个数据
-            if (isLast) {
-
-            }
-        }
-
-
+        
     });
-
-    return fields;
 }
