@@ -1,5 +1,6 @@
 import { getArrayBufferFromDataView } from "../../utils";
 import { DbfField, DbfHeader } from "./type";
+import { JSTypeToDbfType, TJSType } from "./utils";
 
 export function readDbf(options: {
     file: {
@@ -99,14 +100,78 @@ export function readDbf(options: {
 }
 
 export function writeDbf(options: {
-    data: Array<any> | Array<GeoJSON.Feature> | GeoJSON.FeatureCollection,
+    data: Array<GeoJSON.GeoJsonProperties> | Array<GeoJSON.Feature> | GeoJSON.FeatureCollection,
     encoding?: string
 }) {
-    if (!(options.data instanceof Array)) {
-        options.data = options.data.features;
+    const data = options.data instanceof Array ? options.data : options.data.features;
+
+    // 手机字段
+    const fieldsMap = new Map<string, Map<DbfField['type'] | "UNDEFINED", { jsType: TJSType, maxStrLength: number }>>();
+    data.forEach(item => {
+        if ((item as any).type === 'Feature')
+            item = (item as GeoJSON.Feature).properties;
+
+        for (const key in item) {
+            const value = item[key];
+            const valueType = typeof value;
+
+            if (valueType === 'function' || valueType === 'symbol') {
+                continue;
+            }
+
+            let valueStrLength = 0;
+            if (value !== undefined || value !== null) {
+                if (valueType === 'object') {
+                    valueStrLength = JSON.stringify(value).length;
+                } else {
+                    valueStrLength = value.toString().length;
+                }
+            }
+
+            const dbfFieldType = JSTypeToDbfType(valueType);
+            let fields = fieldsMap.get(key);
+            if (fields === undefined) {
+                fields = new Map<DbfField['type'], { jsType: TJSType, maxStrLength: number }>();
+                fieldsMap.set(key, fields);
+            }
+
+            let def = fields.get(dbfFieldType);
+            if (def === undefined) {
+                def = {
+                    jsType: valueType,
+                    maxStrLength: valueStrLength
+                }
+                fields.set(dbfFieldType, def);
+            }
+            else {
+                def.maxStrLength = Math.max(def.maxStrLength, valueStrLength);
+            }
+        }
+    });
+
+    // 清洗 field define
+    const fieldDefs = new Map<string, { type: DbfField['type'], length: number }>();
+
+    for (const [key, fields] of fieldsMap) {
+        if (fields.size === 1) {
+            const field = fields.entries().next().value!;
+            const type = field[0] === 'UNDEFINED' ? 'C' : field[0];
+            fieldDefs.set(key, { type, length: field[1].maxStrLength });
+        }
+        else {
+            const types = Array.from(fields.keys());
+
+            // 包括空值的字段类型
+            if (types.length === 2 && types.includes("UNDEFINED")) {
+                const type = types[(types.indexOf("UNDEFINED") + 1) % 2] as DbfField['type'];
+                fieldDefs.set(key, { type, length: fields.get(type)!.maxStrLength });
+            }
+            else {
+                fieldDefs.set(key, { type: "C", length: Array.from(fields.values()).reduce((a, b) => Math.max(a, b.maxStrLength), 0) })
+            }
+        }
     }
 
-    const propertiesArrayBuffers = options.data.map(item => {
-
-    });
+    // 写入数据
+    const headerDataView= new DataView(new ArrayBuffer(32 + fieldDefs.size * 32 + 1));
 }

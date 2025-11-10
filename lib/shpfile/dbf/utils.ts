@@ -1,17 +1,23 @@
-import iconv from 'iconv-lite';
 import { DbfField } from './type';
 
 
-type TBaseType = "string" | "number" | "bigint" | "boolean" | "undefined" | "object";
+export type TJSType = "string" | "number" | "bigint" | "boolean" | "undefined" | "object";
 
-/**
- * 确定filed 及其类型
- * @param data 
- */
-export function getFieldDefs(data: Array<GeoJSON.GeoJsonProperties> | Array<GeoJSON.Feature>): Array<DbfField> {
-    const map = new Map<string, Map<TBaseType, DbfField | undefined>>();
-
-    data.forEach((item, index) => {
-        
-    });
+export function JSTypeToDbfType(type: TJSType): DbfField['type'] | "UNDEFINED" {
+    switch(type){
+        case "string":
+            return "C";
+        case "number":
+            return "N";
+        case "bigint":
+            return "N";
+        case "boolean":
+            return "L";
+        case "undefined":
+            return "C";
+        case "object":
+            return "C";
+        default:
+            return "C";
+    }
 }
