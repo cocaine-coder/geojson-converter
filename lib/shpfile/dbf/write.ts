@@ -1,5 +1,5 @@
-import { DbfField } from "./type";
-import { inferDbfFieldLength, inferDbfType, jsDataToDbfStr, TJSType } from "./utils";
+import { DbfField, TJSType } from "./type";
+import { inferDbfFieldLength, inferDbfType, jsDataToDbfStr } from "./utils";
 import iconv from 'iconv-lite';
 
 export function writeDbf(options: {

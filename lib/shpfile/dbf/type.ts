@@ -21,3 +21,5 @@ export interface DbfField {
   length: number;
   decimalPlaces: number;
 }
+
+export type TJSType = "string" | "number" | "bigint" | "boolean" | "undefined" | "object";

@@ -1,9 +1,5 @@
 import { DbfField } from './type';
 
-
-export type TJSType = "string" | "number" | "bigint" | "boolean" | "undefined" | "object";
-
-
 export function inferDbfType(val: any): DbfField['type'] | "UNDEFINED" {
     const type = typeof val;
     switch (type) {
