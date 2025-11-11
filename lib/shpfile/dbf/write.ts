@@ -55,7 +55,6 @@ export function writeDbf(options: {
 
     // 清洗 field define
     const fieldDefs = new Array<{ name: string, type: DbfField['type'], length: number }>();
-
     for (const [key, fields] of fieldsMap) {
         if (fields.size === 1) {
             const field = fields.entries().next().value!;
@@ -76,48 +75,80 @@ export function writeDbf(options: {
         }
     }
 
+    const headerLength = 32 + fieldDefs.length * 32 + 1;
+    const recordLength = fieldDefs.reduce((a, b) => a + inferDbfFieldLength(b.type, b.length, encoding), 0) + 1;
+
     // 写入头数据
-    const headerDataView = new DataView(new ArrayBuffer(32 + fieldDefs.length * 32 + 1));
+    const dataView = new DataView(new ArrayBuffer(headerLength + recordLength));
     // 版本
-    headerDataView.setUint8(0, 0x03);
+    dataView.setUint8(0, 0x03);
 
     // 日期
     const date = new Date();
-    headerDataView.setUint8(1, date.getFullYear() - 1900);
-    headerDataView.setUint8(2, date.getMonth() + 1);
-    headerDataView.setUint8(3, date.getDate());
+    dataView.setUint8(1, date.getFullYear() - 1900);
+    dataView.setUint8(2, date.getMonth() + 1);
+    dataView.setUint8(3, date.getDate());
 
     // 记录条数
-    headerDataView.setUint32(4, records.length, true);
+    dataView.setUint32(4, records.length, true);
 
     // 头文件长度
-    headerDataView.setUint16(8, headerDataView.byteLength, true);
+    dataView.setUint16(8, headerLength, true);
 
     // 记录长度
-    headerDataView.setUint16(10, fieldDefs.reduce((a, b) => a + inferDbfFieldLength(b.type, b.length, encoding), 0) + 1, true);
+    dataView.setUint16(10, recordLength, true);
 
     // 保留字段
     for (let i = 0; i < 20; i++) {
-        headerDataView.setUint8(12 + i, 0);
+        dataView.setUint8(12 + i, 0);
     }
 
     let offset = 32;
 
-    fieldDefs.forEach((field,i) => {
+    fieldDefs.forEach((field, i) => {
         const nameBuffer = iconv.encode(field.name, encoding);
-        nameBuffer.forEach((b,j)=>{
-            if(j > 10) return;
-            
-            headerDataView.setUint8(32 + i * 32 + j, b);
+        nameBuffer.forEach((b, j) => {
+            if (j > 10) return;
+
+            dataView.setUint8(offset + j, b);
         });
 
-        for(let j = nameBuffer.length; j < 11; j++){
-            headerDataView.setUint8(32 + i * 32 + j, 0x00);
+        // 补0
+        for (let j = nameBuffer.length; j < 11; j++) {
+            dataView.setUint8(offset + j, 0x00);
         }
 
+        offset += 11;
 
+        //字段类型
+        dataView.setUint8(offset, field.type.charCodeAt(0));
+        offset += 1;
+
+        // 第12-15字节：系统保留区，填充0（补充的4字节）
+        for (let i = 0; i < 4; i++) {
+            dataView.setUint8(offset + i, 0);
+        }
+        offset += 4; // 补充移动这4字节的偏移量
+
+        // 字段长度
+        dataView.setUint8(offset, field.length);
+        offset++;
+
+        // 小数位数 TODO: 暂不处理
+        dataView.setUint8(offset, 6);
+        offset++;
+
+        // 保留字段（填充0）
+        for (let i = 0; i < 14; i++) {
+            dataView.setUint8(offset + i, 0);
+        }
+        offset += 14;
     });
 
     // 截止字段
-    headerDataView.setUint8(32 + fieldDefs.length * 32, 0x0d);
+    dataView.setUint8(32 + fieldDefs.length * 32, 0x0d);
+
+    offset = headerLength;
+    
+
 }
