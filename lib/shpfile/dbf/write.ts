@@ -1,5 +1,5 @@
 import { DbfField } from "./type";
-import { inferDbfFieldLength, inferDbfType, TJSType } from "./utils";
+import { inferDbfFieldLength, inferDbfType, jsDataToDbfStr, TJSType } from "./utils";
 import iconv from 'iconv-lite';
 
 export function writeDbf(options: {
@@ -149,6 +149,28 @@ export function writeDbf(options: {
     dataView.setUint8(32 + fieldDefs.length * 32, 0x0d);
 
     offset = headerLength;
-    
 
+    records.forEach(record => {
+        if ((record as any).type === 'Feature')
+            record = (record as GeoJSON.Feature).properties;
+
+        // 删除标记（空格表示未删除）
+        dataView.setUint8(offset, 0x20);
+        offset += 1;
+
+        fieldDefs.forEach(field => {
+            const value = record![field.name];
+            const str = jsDataToDbfStr(value, field.type, field.length);
+            const strBuffer = iconv.encode(str, encoding);
+            strBuffer.forEach((b, i) => {
+                dataView.setUint8(offset + i, b);
+            });
+
+            offset += field.length;
+        });
+    });
+
+    dataView.setUint8(offset, 0x1A);
+
+    return dataView.buffer;
 }
