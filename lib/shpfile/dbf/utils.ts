@@ -1,5 +1,22 @@
 import { DbfField } from './type';
 
+export const dbf_type_length = {
+    // string
+    C: 254,
+    // boolean
+    L: 1,
+    // date
+    D: 8,
+    // number
+    N: 18,
+    // number
+    M: 18,
+    // number, float
+    F: 18,
+    // number
+    B: 8,
+} as const;
+
 export function inferDbfType(val: any): DbfField['type'] | "UNDEFINED" {
     const type = typeof val;
     switch (type) {
