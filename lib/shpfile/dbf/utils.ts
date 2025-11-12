@@ -1,5 +1,3 @@
-import { DbfField } from './type';
-
 export const dbf_type_length = {
     // string
     C: 254,
@@ -8,65 +6,37 @@ export const dbf_type_length = {
     // date
     D: 8,
     // number
-    N: 18,
+    I: 8,
     // number
-    M: 18,
+    N: 18,
     // number, float
     F: 18,
     // number
     B: 8,
 } as const;
 
-export function inferDbfType(val: any): DbfField['type'] | "UNDEFINED" {
-    const type = typeof val;
-    switch (type) {
-        case "bigint":
-        case "number":
-            return "N";
-        case "boolean":
-            return "L";
-        case "undefined":
-            return "UNDEFINED";
-        case "object":
-            if (val instanceof Date) {
-                return "D";
-            };
-            return "C";
-        default:
-            return "C";
-    }
+export const js_type_to_dbf_type = {
+    string: "C",
+    number: "N",
+    bigint: "N",
+    boolean: "L",
+    undefined: undefined,
+    object: "C",
+    date: "D",
+} as const;
+
+export type TDbfType = keyof typeof dbf_type_length;
+
+export interface DbfHeader {
+    lastUpdated: Date;
+    recordCount: number;
+    headerLength: number;
+    recordLength: number;
 }
 
-export function inferDbfFieldLength(type: DbfField['type'], maxStrLength: number, encoding: string) {
-    const encodingUpper = encoding.toUpperCase();
-
-    switch (type) {
-        case "N":
-        case "F":
-        case "I":
-            return maxStrLength + 1;
-        case "D":
-            return 8;
-        case "L":
-            return 1;
-        case "C":
-            return encodingUpper === "UTF-8" ? maxStrLength * 3 : maxStrLength * 2;
-    }
-}
-
-export function jsDataToDbfStr(val: any, type: DbfField['type'], length: number) {
-    if (val === undefined || val === null)
-        return "".padEnd(length, " ");
-
-    switch (type) {
-        case "N":
-        case "F":
-        case "I":
-        case "C":
-            return String(val).padEnd(length, " ");
-        case "D":
-            return `${val.getFullYear()}${(val.getMonth() + 1).toString().padStart(2, '0')}${val.getDate().toString().padStart(2, '0')}`;
-        case "L":
-            return val ? "T" : "F";
-    }
+export interface DbfField {
+    name: string;
+    type: TDbfType;
+    length: number;
+    decimals: number;
 }

@@ -1,176 +1,167 @@
-import { DbfField, TJSType } from "./type";
-import { inferDbfFieldLength, inferDbfType, jsDataToDbfStr } from "./utils";
+import { dbf_type_length, js_type_to_dbf_type, DbfField, TDbfType } from "./utils";
 import iconv from 'iconv-lite';
 
+type TRecords = Array<GeoJSON.GeoJsonProperties> | Array<GeoJSON.Feature>;
+
 export function writeDbf(options: {
-    data: Array<GeoJSON.GeoJsonProperties> | Array<GeoJSON.Feature> | GeoJSON.FeatureCollection,
+    data: TRecords | GeoJSON.FeatureCollection,
     encoding?: string
 }) {
     const encoding = options.encoding ?? "utf-8";
     const records = options.data instanceof Array ? options.data : options.data.features;
+    const fields = inferDbfFields(records);
 
-    // 手机字段
-    const fieldsMap = new Map<string, Map<DbfField['type'] | "UNDEFINED", { jsType: TJSType, maxStrLength: number }>>();
-    records.forEach(item => {
-        if ((item as any).type === 'Feature')
-            item = (item as GeoJSON.Feature).properties;
+    const headerLength = 32 + fields.length * 32 + 1;
+    const recordLength = fields.reduce((acc, field) => acc + field.length, 1) * records.length; // 1 byte for deleted flag
 
-        for (const key in item) {
-            const value = item[key];
-            const valueType = typeof value;
+    const now = new Date();
+    const view = new DataView(new ArrayBuffer(headerLength + recordLength));
 
-            if (valueType === 'function' || valueType === 'symbol') {
-                continue;
-            }
+    view.setUint8(0, 0x03);
+    view.setUint8(1, now.getFullYear() - 1900);
+    view.setUint8(2, now.getMonth() + 1);
+    view.setUint8(3, now.getDate());
+    view.setUint32(4, records.length, true);
+    view.setUint16(8, headerLength, true);
 
-            let valueStrLength = 0;
-            if (value !== undefined || value !== null) {
-                if (valueType === 'object') {
-                    valueStrLength = JSON.stringify(value).length;
-                } else {
-                    valueStrLength = value.toString().length;
-                }
-            }
+    // 终止符
+    view.setInt8(headerLength - 1, 0x0D);
 
-            const dbfFieldType = inferDbfType(value);
-            let fields = fieldsMap.get(key);
-            if (fields === undefined) {
-                fields = new Map<DbfField['type'], { jsType: TJSType, maxStrLength: number }>();
-                fieldsMap.set(key, fields);
-            }
+    // 字段描述块
+    fields.forEach((field, index) => {
+        // 字段名
+        fillStrToView(view, 32 + index * 32, field.name, encoding, 10);
 
-            let def = fields.get(dbfFieldType);
-            if (def === undefined) {
-                def = {
-                    jsType: valueType,
-                    maxStrLength: valueStrLength
-                }
-                fields.set(dbfFieldType, def);
-            }
-            else {
-                def.maxStrLength = Math.max(def.maxStrLength, valueStrLength);
-            }
-        }
-    });
-
-    // 清洗 field define
-    const fieldDefs = new Array<{ name: string, type: DbfField['type'], length: number }>();
-    for (const [key, fields] of fieldsMap) {
-        if (fields.size === 1) {
-            const field = fields.entries().next().value!;
-            const type = field[0] === 'UNDEFINED' ? 'C' : field[0];
-            fieldDefs.push({ name: key, type, length: field[1].maxStrLength });
-        }
-        else {
-            const types = Array.from(fields.keys());
-
-            // 包括空值的字段类型
-            if (types.length === 2 && types.includes("UNDEFINED")) {
-                const type = types[(types.indexOf("UNDEFINED") + 1) % 2] as DbfField['type'];
-                fieldDefs.push({ name: key, type, length: fields.get(type)!.maxStrLength });
-            }
-            else {
-                fieldDefs.push({ name: key, type: "C", length: Array.from(fields.values()).reduce((a, b) => Math.max(a, b.maxStrLength), 0) })
-            }
-        }
-    }
-
-    const headerLength = 32 + fieldDefs.length * 32 + 1;
-    const recordLength = fieldDefs.reduce((a, b) => a + inferDbfFieldLength(b.type, b.length, encoding), 0) + 1;
-
-    // 写入头数据
-    const dataView = new DataView(new ArrayBuffer(headerLength + recordLength));
-    // 版本
-    dataView.setUint8(0, 0x03);
-
-    // 日期
-    const date = new Date();
-    dataView.setUint8(1, date.getFullYear() - 1900);
-    dataView.setUint8(2, date.getMonth() + 1);
-    dataView.setUint8(3, date.getDate());
-
-    // 记录条数
-    dataView.setUint32(4, records.length, true);
-
-    // 头文件长度
-    dataView.setUint16(8, headerLength, true);
-
-    // 记录长度
-    dataView.setUint16(10, recordLength, true);
-
-    // 保留字段
-    for (let i = 0; i < 20; i++) {
-        dataView.setUint8(12 + i, 0);
-    }
-
-    let offset = 32;
-
-    fieldDefs.forEach((field, i) => {
-        const nameBuffer = iconv.encode(field.name, encoding);
-        nameBuffer.forEach((b, j) => {
-            if (j > 10) return;
-
-            dataView.setUint8(offset + j, b);
-        });
-
-        // 补0
-        for (let j = nameBuffer.length; j < 11; j++) {
-            dataView.setUint8(offset + j, 0x00);
-        }
-
-        offset += 11;
-
-        //字段类型
-        dataView.setUint8(offset, field.type.charCodeAt(0));
-        offset += 1;
-
-        // 第12-15字节：系统保留区，填充0（补充的4字节）
-        for (let i = 0; i < 4; i++) {
-            dataView.setUint8(offset + i, 0);
-        }
-        offset += 4; // 补充移动这4字节的偏移量
+        // 字段类型
+        view.setUint8(32 + index * 32 + 11, field.type.charCodeAt(0));
 
         // 字段长度
-        dataView.setUint8(offset, field.length);
-        offset++;
+        view.setUint8(32 + index * 32 + 16, field.length);
 
-        // 小数位数 TODO: 暂不处理
-        dataView.setUint8(offset, 6);
-        offset++;
-
-        // 保留字段（填充0）
-        for (let i = 0; i < 14; i++) {
-            dataView.setUint8(offset + i, 0);
+        // 浮点数精度
+        if (field.type === "N" || field.type === "F") {
+            view.setUint8(32 + index * 32 + 17, field.decimals ?? 3);
         }
-        offset += 14;
     });
 
-    // 截止字段
-    dataView.setUint8(32 + fieldDefs.length * 32, 0x0d);
+    let offset = headerLength;
 
-    offset = headerLength;
-
-    records.forEach(record => {
-        if ((record as any).type === 'Feature')
-            record = (record as GeoJSON.Feature).properties;
-
-        // 删除标记（空格表示未删除）
-        dataView.setUint8(offset, 0x20);
+    foreachRecords(records, (record, index) => {
+        // delete flag
+        view.setUint8(offset, 0x20);
         offset += 1;
 
-        fieldDefs.forEach(field => {
-            const value = record![field.name];
-            const str = jsDataToDbfStr(value, field.type, field.length);
-            const strBuffer = iconv.encode(str, encoding);
-            strBuffer.forEach((b, i) => {
-                dataView.setUint8(offset + i, b);
-            });
+        fields.forEach(field => {
+            let val = record![field.name]
+            if (val === null || val === undefined) val = "";
+
+            switch (field.type) {
+                case "L":
+                    view.setUint8(offset, val ? 84 : 70);
+                    break;
+                case "D":
+                    if (val instanceof Date) {
+                        const yms = val.toLocaleDateString().split("/");
+                        val = `${yms[0]}${yms[1].padStart(2, '0')}${yms[2].padStart(2, '0')}`;
+                    }
+                    fillStrToView(view, offset, val, encoding, field.length, "left");
+                    break;
+                case "N":
+                    fillStrToView(view, offset, val.toString(), encoding, field.length, "left");
+                    break;
+                case "C":
+                    const valType = typeof val;
+                    let valStr = "";
+                    if(valType === "string") valStr = val;
+                    else if(valType === "number" || valType === "boolean" || valType === 'bigint') valStr = val.toString();
+                    else if(valType === "object"){
+                        if(val instanceof Date) valStr = val.toLocaleString();
+                        else valStr = JSON.stringify(val);
+                    }else {
+                        valStr = valType;
+                    }
+                    fillStrToView(view, offset, valStr, encoding, field.length, "right");
+                    break;
+                default:
+                    throw new Error(`Unsupported field type: ${field.type}`);
+            }
 
             offset += field.length;
         });
     });
 
-    dataView.setUint8(offset, 0x1A);
+    // EOF flag
+    view.setUint8(offset, 0x1A);
+    return view;
+}
 
-    return dataView.buffer;
+function inferDbfFields(records: TRecords): Array<DbfField> {
+    // 获取尽可能多的数据类型
+    const field_map = new Map<string, Set<TDbfType | undefined>>();
+    foreachRecords(records, (record) => {
+        for (const key in record) {
+            const value = record[key];
+            const type = typeof value;
+
+            if (type === "function" || type === 'symbol') continue;
+
+            const dbfType = value instanceof Date ? 'D' : js_type_to_dbf_type[type];
+
+            const set = field_map.get(key);
+            if (set) {
+                set.add(dbfType);
+            } else {
+                field_map.set(key, new Set([dbfType]));
+            }
+        }
+    });
+
+    const result = new Array<DbfField>();
+    field_map.forEach((v, k) => {
+        let type: TDbfType = "C"; // 默认字符串
+
+        // 单一类型
+        if (v.size === 1) {
+            const vt = v.values().next().value;
+            if (vt !== undefined)
+                type = vt;
+        }
+
+        // 两个类型，有可能是可空类型、混合类型
+        else if (v.size === 2) {
+            if (v.has(undefined)) {
+                v.delete(undefined);
+                type = v.values().next().value!;
+            }
+        }
+
+        result.push({
+            name: k,
+            type,
+            length: dbf_type_length[type],
+            decimals: 0
+        });
+    })
+
+    return result;
+}
+
+function foreachRecords(records: TRecords, callback: (record: GeoJSON.GeoJsonProperties, index: number) => void) {
+    records.forEach((record, index) => {
+        if ((record as any).type === "Feature") {
+            record = (record as GeoJSON.Feature).properties;
+        }
+
+        callback(record, index);
+    });
+}
+
+function fillStrToView(view: DataView, offset: number, str: string, encoding: string, maxLength: number, padDirection: "left" | "right" = "right", padChar: string = " ") {
+    if (padDirection === "left") str = str.padStart(maxLength, padChar);
+    else str = str.padEnd(maxLength, padChar);
+
+    const bytes = iconv.encode(str, encoding);
+    for (let i = 0; i < bytes.length && i < maxLength; i++) {
+        view.setInt8(offset + i, bytes[i]);
+    }
 }

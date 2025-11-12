@@ -1,5 +1,5 @@
 import { getArrayBufferFromDataView } from "../../utils";
-import { DbfField, DbfHeader } from "./type";
+import { DbfField, DbfHeader } from "./utils";
 
 export function readDbf(options: {
     file: {
@@ -39,9 +39,9 @@ export function readDbf(options: {
         const name = textDecoder.decode(getArrayBufferFromDataView(dataView, offset, nameLength));
         const type = String.fromCharCode(dataView.getUint8(offset + 11)) as DbfField["type"];
         const length = dataView.getUint8(offset + 16);
-        const decimalPlaces = dataView.getUint8(offset + 17);
+        const decimals = dataView.getUint8(offset + 17);
 
-        fields.push({ name, type, length, decimalPlaces });
+        fields.push({ name, type, length, decimals });
         offset += 32; // 移动到下一个字段描述
     }
 
