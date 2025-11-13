@@ -170,3 +170,18 @@ export function transformCoorinates<T extends GeoJSON.FeatureCollection | GeoJSO
         } as T;
     }
 }
+
+export function groupBy<TV,TK>(data: Array<TV>, keySelector: (item: TV) => TK) : Map<TK, Array<TV>>{
+    const result = new Map<TK, Array<TV>>();
+
+    data.forEach(item=>{
+        const key = keySelector(item);
+        if(result.has(key)){
+            result.get(key)?.push(item);
+        }else{
+            result.set(key, [item]);
+        }
+    });
+
+    return result;
+}

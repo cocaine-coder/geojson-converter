@@ -27,6 +27,7 @@
   "dependencies": {
     "@types/geojson": "^7946.0.16",
     "@types/proj4": "^2.19.0",
+    "@zip.js/zip.js": "^2.8.10",
     "fast-xml-parser": "^5.3.1",
     "iconv-lite": "^0.7.0",
     "proj4": "^2.20.0"

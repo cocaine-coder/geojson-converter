@@ -1,6 +1,6 @@
 import { readShp, writeShp } from './shp';
 import { readDbf, writeDbf } from './dbf';
-import { TFileLike, transformCoorinates } from '../utils';
+import { groupBy, TFileLike, transformCoorinates } from '../utils';
 import proj4 from 'proj4';
 
 export function readShpFile(options: {
@@ -47,12 +47,43 @@ export function writeShpFile(options: {
         return x.geometry.type !== 'GeometryCollection';
     });
 
-    const shpData = writeShp({ data: data as any });
-    const dbfData = writeDbf({ data: data, encoding: options.encoding });
-    const prjData = new TextEncoder().encode(options.crs || "");
-    const cpgData = new TextEncoder().encode(options.encoding.toUpperCase());
+    const shpTypedData = groupBy(data, x => {
+        switch (x.geometry.type) {
+            case "Point": return "POINT";
+            case "MultiPoint": return "MULTIPOINT";
+            case "LineString":
+            case "MultiLineString": return "POLYLINE";
+            case "Polygon":
+            case "MultiPolygon": return "POLYGON";
+            case "GeometryCollection": throw new Error("GeometryCollection is not supported");
+        }
+    });
 
-    return { ...shpData, dbf: dbfData, prj: prjData.buffer, cpg: cpgData.buffer }
+    const result = new Array<{
+        name: string,
+        data: {
+            shp: ArrayBuffer,
+            shx: ArrayBuffer;
+            dbf: ArrayBuffer,
+            prj: ArrayBuffer,
+            cpg: ArrayBuffer
+        }
+    }>();
+    for (const [key, value] of shpTypedData) {
+        const shpData = writeShp({ data: value as any });
+        const dbfData = writeDbf({ data: value, encoding: options.encoding });
+        const prjData = new TextEncoder().encode(options.crs || "");
+        const cpgData = new TextEncoder().encode(options.encoding.toUpperCase());
+
+        result.push({
+            name: key,
+            data: {
+                ...shpData, dbf: dbfData, prj: prjData.buffer, cpg: cpgData.buffer
+            }
+        });
+    }
+
+    return result;
 }
 
 export { readShp, writeShp, readDbf, writeDbf };
