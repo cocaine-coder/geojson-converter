@@ -100,7 +100,6 @@ export async function readFromZip(file: Blob | ArrayBuffer) {
     }
 
     const zipReader = new zip.ZipReader(new zip.BlobReader(file));
-
     const entries = await zipReader.getEntries();
 
     entries.forEach(entry=>{
