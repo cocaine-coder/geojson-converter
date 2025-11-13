@@ -422,6 +422,13 @@
   dependencies:
     undici-types "~7.16.0"
 
+"@types/proj4@^2.19.0":
+  version "2.19.0"
+  resolved "https://registry.npmmirror.com/@types/proj4/-/proj4-2.19.0.tgz#4aa8b5236ce09cc2fb4d3299d0f0c1f35ba37266"
+  integrity sha512-mirdnXu5sW9+IphQ4r+ZVii2JVLDbXgMp1lxqbiCppdgL22EwMwL4Dy/cyHVaJ2y/mi7LUQHghpILd3w3j2bnA==
+  dependencies:
+    proj4 "*"
+
 "@vitest/expect@4.0.4":
   version "4.0.4"
   resolved "https://registry.npmmirror.com/@vitest/expect/-/expect-4.0.4.tgz#ba98573c19f568ce8ad0377ebbb5689883a2f053"
@@ -853,6 +860,11 @@ magic-string@^0.30.17, magic-string@^0.30.19:
   dependencies:
     "@jridgewell/sourcemap-codec" "^1.5.5"
 
+mgrs@1.0.0:
+  version "1.0.0"
+  resolved "https://registry.npmmirror.com/mgrs/-/mgrs-1.0.0.tgz#fb91588e78c90025672395cb40b25f7cd6ad1829"
+  integrity sha512-awNbTOqCxK1DBGjalK3xqWIstBZgN6fxsMSiXLs9/spqWkF2pAhb2rrYCFSsr1/tT7PhcDGjZndG8SWYn0byYA==
+
 minimatch@10.0.3:
   version "10.0.3"
   resolved "https://registry.npmmirror.com/minimatch/-/minimatch-10.0.3.tgz#cf7a0314a16c4d9ab73a7730a0e8e3c3502d47aa"
@@ -943,6 +955,14 @@ postcss@^8.5.6:
     nanoid "^3.3.11"
     picocolors "^1.1.1"
     source-map-js "^1.2.1"
+
+proj4@*, proj4@^2.20.0:
+  version "2.20.0"
+  resolved "https://registry.npmmirror.com/proj4/-/proj4-2.20.0.tgz#059656589434f2eff02070806a5779ad4fc70070"
+  integrity sha512-9Mj5kUxQ6xBE5IzzkQcm0cRUH21FNp+wFp0AK7gBdPsiIc1iNwgNyCS4Lp55sPJum9DO8UNepZxEzrGPmm8RAg==
+  dependencies:
+    mgrs "1.0.0"
+    wkt-parser "^1.5.1"
 
 punycode@^2.1.0:
   version "2.3.1"
@@ -1190,6 +1210,11 @@ why-is-node-running@^2.3.0:
   dependencies:
     siginfo "^2.0.0"
     stackback "0.0.2"
+
+wkt-parser@^1.5.1:
+  version "1.5.2"
+  resolved "https://registry.npmmirror.com/wkt-parser/-/wkt-parser-1.5.2.tgz#a8eaf86ac2cc1d0a2e6a8082a930f5c7ebdb5771"
+  integrity sha512-1ZUiV1FTwSiSrgWzV9KXJuOF2BVW91KY/mau04BhnmgOdroRQea7Q0s5TVqwGLm0D2tZwObd/tBYXW49sSxp3Q==
 
 yallist@^4.0.0:
   version "4.0.0"

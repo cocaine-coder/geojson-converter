@@ -1,3 +1,9 @@
+import proj4 from 'proj4';
+import { PROJJSONDefinition } from 'proj4/dist/lib/core';
+import Projection from 'proj4/dist/lib/Proj';
+
+export type TFileLike = { buffer: ArrayBuffer; byteOffset?: number; byteLength?: number; }
+
 /**
  * 判断一组点是否是顺时针方向
  * @param points 
@@ -118,4 +124,49 @@ export function mergeArrayBuffers(arrayBuffers: Array<ArrayBuffer>) {
     }
 
     return mergedArrayBuffer;
+}
+
+export function transformCoorinates<T extends GeoJSON.FeatureCollection | GeoJSON.Feature | GeoJSON.Geometry>(data: T, fromProj: string | PROJJSONDefinition | Projection, toProj: string | PROJJSONDefinition | Projection): T {
+    if (data.type === 'FeatureCollection') {
+        return {
+            type: 'FeatureCollection',
+            features: data.features.map(f => transformCoorinates(f, fromProj, toProj))
+        } as T;
+    }
+    else if (data.type === 'Feature') {
+        return {
+            type: "Feature",
+            geometry: transformCoorinates(data.geometry, fromProj, toProj),
+            properties: data.properties
+        } as T
+    }
+    else if (data.type === 'Point') {
+        return {
+            type: "Point",
+            coordinates: proj4(fromProj, toProj, data.coordinates)
+        } as T;
+    }
+    else if (data.type === "MultiPoint" || data.type === 'LineString') {
+        return {
+            type: data.type,
+            coordinates: data.coordinates.map(x => proj4(fromProj, toProj, x))
+        } as T;
+    }
+    else if (data.type === 'MultiLineString' || data.type === 'Polygon') {
+        return {
+            type: data.type,
+            coordinates: data.coordinates.map(x => x.map(y => proj4(fromProj, toProj, y)))
+        } as T;
+    }
+    else if (data.type === "MultiPolygon") {
+        return {
+            type: data.type,
+            coordinates: data.coordinates.map(x => x.map(y => y.map(z => proj4(fromProj, toProj, z))))
+        } as T;
+    } else {
+        return {
+            type: "GeometryCollection",
+            geometries: data.geometries.map(x => transformCoorinates(x, fromProj, toProj))
+        } as T;
+    }
 }

@@ -92,7 +92,7 @@ export function writeDbf(options: {
 
     // EOF flag
     view.setUint8(offset, 0x1A);
-    return view;
+    return view.buffer;
 }
 
 function inferDbfFields(records: TRecords): Array<DbfField> {

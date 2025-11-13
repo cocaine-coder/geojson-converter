@@ -1,12 +1,8 @@
-import { getArrayBufferFromDataView } from "../../utils";
+import { getArrayBufferFromDataView, TFileLike } from "../../utils";
 import { DbfField, DbfHeader } from "./utils";
 
 export function readDbf(options: {
-    file: {
-        buffer: ArrayBuffer;
-        byteOffset?: number;
-        byteLength?: number;
-    },
+    file: TFileLike,
     encoding?: string;
 }) {
     const dataView = new DataView(

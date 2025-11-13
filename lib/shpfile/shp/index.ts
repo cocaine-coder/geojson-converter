@@ -1,16 +1,14 @@
-import { bbox, mergeArrayBuffers } from "../../utils";
+import { bbox, mergeArrayBuffers, TFileLike } from "../../utils";
 import { ShapeType } from "../shape-type";
 import { createReadRecord, createWriteRecord, TCanWriteGeoJSONGeometry } from "./record";
 
 export function readShp(options: {
-  buffer: ArrayBuffer;
-  byteOffset?: number;
-  byteLength?: number;
+  file: TFileLike
 }) {
   const view = new DataView(
-    options.buffer,
-    options.byteOffset,
-    options.byteLength
+    options.file.buffer,
+    options.file.byteOffset,
+    options.file.byteLength
   );
 
   const fileLength = view.getInt32(24, false) * 2;
@@ -72,5 +70,31 @@ export function writeShp(options: {
   headerView.setFloat64(84, 0, true);
   headerView.setFloat64(92, 0, true);
 
-  return mergeArrayBuffers([headerView.buffer, ...recordArrayBuffers]);
+  const shx = writeShx(shapeType, box, 100, recordArrayBuffers);
+
+  return { shx, shp: mergeArrayBuffers([headerView.buffer, ...recordArrayBuffers]) };
+}
+
+function writeShx(shapeType: ShapeType, bbox: Array<number>, offset: number, recordArrayBuffers: Array<ArrayBuffer>): ArrayBuffer {
+  const shxFileLenght = 100 + 8 * recordArrayBuffers.length;
+  const view = new DataView(new ArrayBuffer(shxFileLenght));
+
+  view.setInt32(0, 0x0000270a, false);
+  view.setInt32(24, shxFileLenght, false);
+  view.setInt32(28, 1000, true);
+  view.setInt32(32, shapeType, true);
+  view.setFloat64(36, bbox[0], true);
+  view.setFloat64(44, bbox[1], true);
+  view.setFloat64(52, bbox[2], true);
+  view.setFloat64(60, bbox[3], true);
+
+  recordArrayBuffers.forEach((buffer, index) => {
+    const lastBuffer = recordArrayBuffers[index - 1];
+    offset += lastBuffer?.byteLength || 0;
+
+    view.setInt32(100 + index * 8, offset, false);
+    view.setInt32(100 + index * 8 + 4, buffer.byteLength, false);
+  });
+
+  return view.buffer;
 }
