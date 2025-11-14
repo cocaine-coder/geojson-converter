@@ -24,9 +24,6 @@ export function writeDbf(options: {
     view.setUint32(4, records.length, true);
     view.setUint16(8, headerLength, true);
 
-    // 终止符
-    view.setInt8(headerLength - 1, 0x0D);
-
     // 字段描述块
     fields.forEach((field, index) => {
         // 字段名
@@ -43,6 +40,9 @@ export function writeDbf(options: {
             view.setUint8(32 + index * 32 + 17, field.decimals ?? 3);
         }
     });
+
+    // 终止符
+    view.setInt8(headerLength - 1, 0x0D);
 
     let offset = headerLength;
 

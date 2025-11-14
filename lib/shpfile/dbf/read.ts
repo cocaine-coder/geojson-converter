@@ -41,6 +41,9 @@ export function readDbf(options: {
         offset += 32; // 移动到下一个字段描述
     }
 
+    // 跳过终止符
+    offset += 1;
+
     const records: Array<{ [key: string]: any }> = [];
     for (let i = 0; i < header.recordCount; i++) {
         const record: { [key: string]: any } = {};
@@ -61,6 +64,9 @@ export function readDbf(options: {
                         case "N": // 数字
                         case "F": // 浮点
                             parsedValue = parseFloat(rawValue);
+                            if(parsedValue.toString()=== "NaN"){
+                                parsedValue = undefined
+                            }
                             break;
                         case "I": // 整数
                             parsedValue = parseInt(rawValue);
