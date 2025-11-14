@@ -1,0 +1,32 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [120, 30]
+      },
+      "properties": {
+        "name": "名字",
+        "身高": 189,
+        "测试一下最大中文容量": "测试一下最大中文容量"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [120, 30],
+          [120, 31]
+        ]
+      },
+      "properties": {
+        "name": "名字",
+        "身高": 189,
+        "测试一下最大中文容量": "测试一下最大中文容量"
+      }
+    }
+  ]
+}

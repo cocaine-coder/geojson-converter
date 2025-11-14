@@ -56,7 +56,7 @@ export function writeShp(options: {
 
   const headerView = new DataView(new ArrayBuffer(100));
   headerView.setInt32(0, 9994, false);
-  headerView.setInt32(24, 100 + recordArrayBuffers.reduce((sum, buffer) => sum + buffer.byteLength, 0), false);
+  headerView.setInt32(24, (100 + recordArrayBuffers.reduce((sum, buffer) => sum + buffer.byteLength, 0)) / 2, false);
   headerView.setInt32(28, 1000, true);
   headerView.setInt32(32, shapeType, true);
 
@@ -80,7 +80,7 @@ function writeShx(shapeType: ShapeType, bbox: Array<number>, offset: number, rec
   const view = new DataView(new ArrayBuffer(shxFileLenght));
 
   view.setInt32(0, 0x0000270a, false);
-  view.setInt32(24, shxFileLenght, false);
+  view.setInt32(24, shxFileLenght / 2, false);
   view.setInt32(28, 1000, true);
   view.setInt32(32, shapeType, true);
   view.setFloat64(36, bbox[0], true);
@@ -93,7 +93,7 @@ function writeShx(shapeType: ShapeType, bbox: Array<number>, offset: number, rec
     offset += lastBuffer?.byteLength || 0;
 
     view.setInt32(100 + index * 8, offset, false);
-    view.setInt32(100 + index * 8 + 4, buffer.byteLength, false);
+    view.setInt32(100 + index * 8 + 4, buffer.byteLength / 2, false);
   });
 
   return view.buffer;

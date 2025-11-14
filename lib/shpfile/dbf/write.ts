@@ -15,7 +15,7 @@ export function writeDbf(options: {
     const recordLength = fields.reduce((acc, field) => acc + field.length, 1) * records.length; // 1 byte for deleted flag
 
     const now = new Date();
-    const view = new DataView(new ArrayBuffer(headerLength + recordLength));
+    const view = new DataView(new ArrayBuffer(headerLength + recordLength + 1));
 
     view.setUint8(0, 0x03);
     view.setUint8(1, now.getFullYear() - 1900);
@@ -89,7 +89,7 @@ export function writeDbf(options: {
             offset += field.length;
         });
     });
-
+    
     // EOF flag
     view.setUint8(offset, 0x1A);
     return view.buffer;

@@ -2,6 +2,17 @@ import proj4 from 'proj4';
 import { PROJJSONDefinition } from 'proj4/dist/lib/core';
 import Projection from 'proj4/dist/lib/Proj';
 
+export const contracts = {
+    crs:{
+        proj:{
+            wgs84 : "+proj=longlat +datum=WGS84 +no_defs +type=crs"
+        },
+        wkt:{
+            wgs84: `GEOGCS["GCS_WGS_1984",DATUM["D_WGS_1984",SPHEROID["WGS_1984",6378137.0,298.257223563]],PRIMEM["Greenwich",0.0],UNIT["Degree",0.0174532925199433]]`
+        }
+    }
+} as const;
+
 export type TFileLike = { buffer: ArrayBuffer; byteOffset?: number; byteLength?: number; }
 
 /**

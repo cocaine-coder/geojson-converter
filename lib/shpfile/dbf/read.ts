@@ -32,7 +32,7 @@ export function readDbf(options: {
             nameLength++;
         }
 
-        const name = textDecoder.decode(getArrayBufferFromDataView(dataView, offset, nameLength));
+        const name = textDecoder.decode(getArrayBufferFromDataView(dataView, offset, nameLength)).trim();
         const type = String.fromCharCode(dataView.getUint8(offset + 11)) as DbfField["type"];
         const length = dataView.getUint8(offset + 16);
         const decimals = dataView.getUint8(offset + 17);
