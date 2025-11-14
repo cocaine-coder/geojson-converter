@@ -17,7 +17,7 @@ type TWriteOptions = {
     crs?: string
 }
 
-export function readShpFile(options: TReadOptions) {
+export function readShpFile(options: TReadOptions): GeoJSON.FeatureCollection {
     const shpData = readShp({ file: options.shp });
     const dbfData = readDbf({ file: options.dbf, encoding: options.encoding });
 
@@ -94,24 +94,55 @@ export function writeShpFile(options: TWriteOptions) {
 export { readShp, writeShp, readDbf, writeDbf };
 
 
-export async function readFromZip(file: Blob | ArrayBuffer) {
+export async function readFromZip(file: Blob | File | ArrayBuffer, options: {
+    forceEncoding?: string
+    forceCrs?: string
+}) {
     if (file instanceof ArrayBuffer) {
         file = new Blob([file], { type: 'application/zip' });
     }
 
     const zipReader = new zip.ZipReader(new zip.BlobReader(file));
     const entries = await zipReader.getEntries();
+    const shpfiles = groupBy(entries, x => x.filename.split(/[\\/]/g).pop()!.split(".")[0]);
 
-    entries.forEach(entry=>{
-        
-    });
+    const result = new Array<{ name: string, data: GeoJSON.FeatureCollection }>();
+    for (const [key, value] of shpfiles) {
+        const shpEntry = value.find(x => x.filename.endsWith(".shp") && !x.directory) as zip.FileEntry;
+        const dbfEntry = value.find(x => x.filename.endsWith(".dbf") && !x.directory) as zip.FileEntry;
+        const cpgEntry = value.find(x => x.filename.endsWith(".cpg") && !x.directory) as zip.FileEntry;
+        const prjEntry = value.find(x => x.filename.endsWith(".prj") && !x.directory) as zip.FileEntry;
+
+        if (!shpEntry || !dbfEntry) {
+            console.warn(`shp or dbf is missing,name: ${key}`);
+            continue;
+        }
+
+        let encoding = options.forceEncoding;
+        if (!encoding && cpgEntry) {
+            encoding = await cpgEntry.getData(new zip.TextWriter());
+        }
+
+        let crs = options.forceCrs;
+        if (!crs && prjEntry) {
+            crs = await prjEntry.getData(new zip.TextWriter())
+        }
+
+        const fc = readShpFile({
+            shp: await shpEntry.getData(new zip.Uint8ArrayWriter()),
+            dbf: await dbfEntry.getData(new zip.Uint8ArrayWriter()),
+            encoding,
+            crs
+        });
+
+        result.push({ name: key, data: fc });
+    }
 }
 
 export async function writeToZip(options: TWriteOptions) {
     const temp = writeShpFile(options);
 
-    const blobWriter = new zip.BlobWriter("application/zip");
-    const zipWriter = new zip.ZipWriter(blobWriter);
+    const zipWriter = new zip.ZipWriter(new zip.BlobWriter("application/zip"));
 
     const tasks = temp.reduce((p, x) => {
         for (const [extensions, buffers] of Object.entries(x.data)) {
@@ -123,7 +154,5 @@ export async function writeToZip(options: TWriteOptions) {
     }, new Array<Promise<any>>());
 
     await Promise.all(tasks);
-    await zipWriter.close();
-
-    return await blobWriter.getData();
+    return zipWriter.close();
 }
