@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<kml xmlns="http://www.opengis.net/kml/2.2" xmlns:gx="http://www.google.com/kml/ext/2.2">
+  <Document>
+    <name></name>
+    <description></description>
+    <Placemark>
+      <Point>
+        <coordinates>120,30</coordinates>
+      </Point>
+    </Placemark>
+    <Placemark>
+      <LineString>
+        <coordinates>120,30
+          120,31
+        </coordinates>
+      </LineString>
+    </Placemark>
+  </Document>
+</kml>

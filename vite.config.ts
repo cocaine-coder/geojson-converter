@@ -5,7 +5,7 @@ export default defineConfig(({ mode }) => {
   if (mode === 'cjs') {
     return {
       build: {
-        emptyOutDir:false,
+        emptyOutDir: false,
         lib: {
           entry: "./lib/index.ts",
           fileName: "index",
@@ -23,7 +23,7 @@ export default defineConfig(({ mode }) => {
           formats: ['es']
         },
         rollupOptions: {
-          external: ['@zip.js/zip.js', 'iconv-lite', 'proj4', '@types/geojson']
+          external: ['@zip.js/zip.js', 'iconv-lite', 'proj4', '@types/geojson', 'fast-xml-parser']
         }
       },
     }
