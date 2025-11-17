@@ -40,3 +40,18 @@ export interface DbfField {
     length: number;
     decimals: number;
 }
+
+/**
+ * 获取编码
+ * @param ldid 
+ * @returns
+ */
+export const ldidToEncoding: { [key: number]: string } = {
+    0x98: "GBK",
+    0X4D: "GBK",
+    0x4F: "Big5",
+    0x03: 'Windows-1252',
+    0x57: 'Windows-1252',
+    0x58: 'Windows-1252',
+    0x59: 'Windows-1252',
+}
