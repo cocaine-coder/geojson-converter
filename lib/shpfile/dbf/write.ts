@@ -10,9 +10,10 @@ export function writeDbf(options: {
     const encoding = options.encoding ?? "utf-8";
     const records = options.data instanceof Array ? options.data : options.data.features;
     const fields = inferDbfFields(records);
+    const bytesPerRecord = fields.reduce((acc, field) => acc + field.length, 1);
 
     const headerLength = 32 + fields.length * 32 + 1;
-    const recordLength = fields.reduce((acc, field) => acc + field.length, 1) * records.length; // 1 byte for deleted flag
+    const recordLength = bytesPerRecord * records.length; // 1 byte for deleted flag
 
     const now = new Date();
     const view = new DataView(new ArrayBuffer(headerLength + recordLength + 1));
@@ -23,11 +24,12 @@ export function writeDbf(options: {
     view.setUint8(3, now.getDate());
     view.setUint32(4, records.length, true);
     view.setUint16(8, headerLength, true);
+    view.setUint16(10, bytesPerRecord, true);
 
     // 字段描述块
     fields.forEach((field, index) => {
         // 字段名
-        fillStrToView(view, 32 + index * 32, field.name, encoding, 10);
+        fillStrToView(view, 32 + index * 32, field.name, encoding, 10, false);
 
         // 字段类型
         view.setUint8(32 + index * 32 + 11, field.type.charCodeAt(0));
@@ -64,23 +66,23 @@ export function writeDbf(options: {
                         const yms = val.toLocaleDateString().split("/");
                         val = `${yms[0]}${yms[1].padStart(2, '0')}${yms[2].padStart(2, '0')}`;
                     }
-                    fillStrToView(view, offset, val, encoding, field.length, "left");
+                    fillStrToView(view, offset, val, encoding, field.length, { direction: "left", char: " " });
                     break;
                 case "N":
-                    fillStrToView(view, offset, val.toString(), encoding, field.length, "left");
+                    fillStrToView(view, offset, val.toString(), encoding, field.length, { direction: "left", char: " " });
                     break;
                 case "C":
                     const valType = typeof val;
                     let valStr = "";
-                    if(valType === "string") valStr = val;
-                    else if(valType === "number" || valType === "boolean" || valType === 'bigint') valStr = val.toString();
-                    else if(valType === "object"){
-                        if(val instanceof Date) valStr = val.toLocaleString();
+                    if (valType === "string") valStr = val;
+                    else if (valType === "number" || valType === "boolean" || valType === 'bigint') valStr = val.toString();
+                    else if (valType === "object") {
+                        if (val instanceof Date) valStr = val.toLocaleString();
                         else valStr = JSON.stringify(val);
-                    }else {
+                    } else {
                         valStr = valType;
                     }
-                    fillStrToView(view, offset, valStr, encoding, field.length, "right");
+                    fillStrToView(view, offset, valStr, encoding, field.length, { direction: "right", char: " " });
                     break;
                 default:
                     throw new Error(`Unsupported field type: ${field.type}`);
@@ -89,7 +91,7 @@ export function writeDbf(options: {
             offset += field.length;
         });
     });
-    
+
     // EOF flag
     view.setUint8(offset, 0x1A);
     return view.buffer;
@@ -146,6 +148,11 @@ function inferDbfFields(records: TRecords): Array<DbfField> {
     return result;
 }
 
+/**
+ * 遍历记录
+ * @param records 
+ * @param callback 
+ */
 function foreachRecords(records: TRecords, callback: (record: GeoJSON.GeoJsonProperties, index: number) => void) {
     records.forEach((record, index) => {
         if ((record as any).type === "Feature") {
@@ -156,9 +163,12 @@ function foreachRecords(records: TRecords, callback: (record: GeoJSON.GeoJsonPro
     });
 }
 
-function fillStrToView(view: DataView, offset: number, str: string, encoding: string, maxLength: number, padDirection: "left" | "right" = "right", padChar: string = " ") {
-    if (padDirection === "left") str = str.padStart(maxLength, padChar);
-    else str = str.padEnd(maxLength, padChar);
+function fillStrToView(view: DataView, offset: number, str: string, encoding: string, maxLength: number, pad: {
+    direction: "left" | "right", char: string
+} | false) {
+    if (pad) {
+        str = pad.direction === 'left' ? str.padStart(maxLength, pad.char) : str.padEnd(maxLength, pad.char);
+    }
 
     const bytes = iconv.encode(str, encoding);
     for (let i = 0; i < bytes.length && i < maxLength; i++) {

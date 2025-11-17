@@ -70,16 +70,17 @@ export function writeShp(options: {
   headerView.setFloat64(84, 0, true);
   headerView.setFloat64(92, 0, true);
 
-  const shx = writeShx(shapeType, box, 100, recordArrayBuffers);
+  const shx = writeShx(shapeType, box, recordArrayBuffers);
 
   return { shx, shp: mergeArrayBuffers([headerView.buffer, ...recordArrayBuffers]) };
 }
 
-function writeShx(shapeType: ShapeType, bbox: Array<number>, offset: number, recordArrayBuffers: Array<ArrayBuffer>): ArrayBuffer {
+function writeShx(shapeType: ShapeType, bbox: Array<number>, recordArrayBuffers: Array<ArrayBuffer>): ArrayBuffer {
   const shxFileLenght = 100 + 8 * recordArrayBuffers.length;
   const view = new DataView(new ArrayBuffer(shxFileLenght));
+  let offset = 100; // shp头文件
 
-  view.setInt32(0, 0x0000270a, false);
+  view.setInt32(0, 9994, false);
   view.setInt32(24, shxFileLenght / 2, false);
   view.setInt32(28, 1000, true);
   view.setInt32(32, shapeType, true);
@@ -92,8 +93,8 @@ function writeShx(shapeType: ShapeType, bbox: Array<number>, offset: number, rec
     const lastBuffer = recordArrayBuffers[index - 1];
     offset += lastBuffer?.byteLength || 0;
 
-    view.setInt32(100 + index * 8, offset, false);
-    view.setInt32(100 + index * 8 + 4, buffer.byteLength / 2, false);
+    view.setInt32(100 + index * 8, offset / 2, false);
+    view.setInt32(100 + index * 8 + 4, (buffer.byteLength - 8) / 2, false); // 去掉header的长度
   });
 
   return view.buffer;
