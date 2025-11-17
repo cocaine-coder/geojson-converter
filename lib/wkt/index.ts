@@ -36,7 +36,7 @@ export namespace WKT {
         break;
       case "GeometryCollection":
         wkt += `(${geometry.geometries
-          .map((g) => toWKT(g, includeZ))
+          .map((g) => stringify(g, includeZ))
           .join(", ")})`;
         break;
     }
@@ -59,7 +59,7 @@ export namespace WKT {
           if (subWKT === "" || typeChar) {
             subWKT += c;
           } else {
-            ret.geometries.push(fromWKT(subWKT.trim().slice(0, -1)));
+            ret.geometries.push(parse(subWKT.trim().slice(0, -1)));
             subWKT = c;
           }
           typeChar = true;
