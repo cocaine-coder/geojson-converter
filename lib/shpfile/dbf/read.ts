@@ -1,5 +1,6 @@
 import { getArrayBufferFromDataView, TFileLike } from "../../utils";
 import { DbfField, DbfHeader } from "./utils";
+import iconv from 'iconv-lite';
 
 export function readDbf(file: TFileLike, options: {
     encoding?: string;
@@ -9,6 +10,7 @@ export function readDbf(file: TFileLike, options: {
         file.byteOffset,
         file.byteLength
     );
+    options.encoding ??= "utf-8";
 
     const header: DbfHeader = {
         lastUpdated: new Date(dataView.getUint8(1) + 1900, dataView.getUint8(2) - 1, dataView.getUint8(3)), // 注意月份从0开始
@@ -20,7 +22,6 @@ export function readDbf(file: TFileLike, options: {
     // 计算字段数量
     const fieldCount = (header.headerLength - 33) / 32; // 头长度减去基础头和终止符，除以每个字段描述块的大小
     const fields: DbfField[] = [];
-    const textDecoder = new TextDecoder(options.encoding);
 
     let offset = 32; // 跳过基础头，开始读取字段描述
 
@@ -31,7 +32,7 @@ export function readDbf(file: TFileLike, options: {
             nameLength++;
         }
 
-        const name = textDecoder.decode(getArrayBufferFromDataView(dataView, offset, nameLength)).trim();
+        const name = iconv.decode(new Uint8Array(getArrayBufferFromDataView(dataView, offset, nameLength)), options.encoding).trim();
         const type = String.fromCharCode(dataView.getUint8(offset + 11)) as DbfField["type"];
         const length = dataView.getUint8(offset + 16);
         const decimals = dataView.getUint8(offset + 17);
@@ -55,7 +56,7 @@ export function readDbf(file: TFileLike, options: {
 
         if (deleteFlag !== 0x2A) {
             for (const field of fields) {
-                const rawValue = textDecoder.decode(getArrayBufferFromDataView(dataView, recordOffset, field.length))?.trim();
+                const rawValue = iconv.decode(new Uint8Array(getArrayBufferFromDataView(dataView, recordOffset, field.length)), options.encoding)?.trim().replace(/\x00/g, '');
                 let parsedValue: any = rawValue;
 
                 if (rawValue && rawValue.toUpperCase() !== "NULL") {

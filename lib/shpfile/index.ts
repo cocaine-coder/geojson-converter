@@ -3,6 +3,7 @@ import { readDbf, writeDbf } from './dbf';
 import { contracts, groupBy, proj4ToWkt, TFileLike, transformCoorinates } from '../utils';
 import proj4 from 'proj4';
 import * as zip from '@zip.js/zip.js';
+import iconv from 'iconv-lite';
 
 type TReadOptions = {
     encoding?: string,
@@ -97,7 +98,14 @@ export namespace SHPFILE {
             file = new Blob([file], { type: 'application/zip' });
         }
 
-        const zipReader = new zip.ZipReader(new zip.BlobReader(file));
+        const zipReader = new zip.ZipReader(new zip.BlobReader(file), {
+            decodeText: (buffer, encoding) => {
+                if(encoding.toUpperCase() === "CP437" || encoding.toUpperCase() === "CP936") // 转中文
+                    encoding = "gbk";
+
+                return iconv.decode(buffer, encoding);
+            }
+        });
         const entries = await zipReader.getEntries();
         const shpfiles = groupBy(entries, x => x.filename.split(/[\\/]/g).pop()!.split(".")[0]);
 
