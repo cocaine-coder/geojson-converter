@@ -1,0 +1,29 @@
+name: Publish Package to npmjs
+on:
+  push:
+    tags:
+      - 'v*' # 匹配所有以 v 开头的 tag
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          registry-url: 'https://registry.npmjs.org/' # 指定发布到 npm 官方仓库
+
+      - name: Install dependencies
+        run: npm ci # 使用 ci 命令确保依赖的精确性
+
+      - name: Run build step
+        run: npm run build # 如果你的包需要构建，请确保有这一步
+
+      - name: Publish to npm
+        run: npm publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }} # 使用之前设置的 Secret
