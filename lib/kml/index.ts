@@ -37,10 +37,13 @@ export namespace KML {
 
         const result: Array<GeoJSON.Feature> = [];
 
-        const pushToResult = (p: IPlacemark) =>{
+        const pushToResult = (p: IPlacemark) => {
+            const g = toGeometry(p);
+            if (!g) return;
+
             result.push({
                 type: "Feature",
-                geometry: toGeometry(p),
+                geometry: g,
                 properties: {}
             });
         }
@@ -50,28 +53,28 @@ export namespace KML {
                 if (folder.Placemark instanceof Array) {
                     folder.Placemark.forEach(pushToResult)
                 }
-                else{
+                else {
                     pushToResult(folder.Placemark);
                 }
             }
-            
-            if(folder.Folder){
-                if(folder.Folder instanceof Array)
+
+            if (folder.Folder) {
+                if (folder.Folder instanceof Array)
                     folder.Folder.forEach(fillInFolder)
                 else
                     fillInFolder(folder.Folder)
             }
         }
 
-        if(doc.Folder){
-            if(doc.Folder instanceof Array)
+        if (doc.Folder) {
+            if (doc.Folder instanceof Array)
                 doc.Folder.forEach(fillInFolder);
             else
                 fillInFolder(doc.Folder);
         }
 
-        if(doc.Placemark){
-            if(doc.Placemark instanceof Array)
+        if (doc.Placemark) {
+            if (doc.Placemark instanceof Array)
                 doc.Placemark.forEach(pushToResult)
             else
                 pushToResult(doc.Placemark);

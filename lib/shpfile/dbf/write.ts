@@ -3,12 +3,11 @@ import iconv from 'iconv-lite';
 
 type TRecords = Array<GeoJSON.GeoJsonProperties> | Array<GeoJSON.Feature>;
 
-export function writeDbf(options: {
-    data: TRecords | GeoJSON.FeatureCollection,
+export function writeDbf(data: TRecords | GeoJSON.FeatureCollection, options: {
     encoding?: string
-}) {
+} = {}) {
     const encoding = options.encoding ?? "utf-8";
-    const records = options.data instanceof Array ? options.data : options.data.features;
+    const records = data instanceof Array ? data : data.features;
     const fields = inferDbfFields(records);
     const bytesPerRecord = fields.reduce((acc, field) => acc + field.length, 1);
 

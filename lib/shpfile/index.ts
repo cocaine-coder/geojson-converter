@@ -5,22 +5,19 @@ import proj4 from 'proj4';
 import * as zip from '@zip.js/zip.js';
 
 type TReadOptions = {
-    shp: TFileLike,
-    dbf: TFileLike,
     encoding?: string,
     crs?: string
 }
 
 type TWriteOptions = {
-    data: GeoJSON.FeatureCollection | Array<GeoJSON.Feature>,
     encoding?: string,
     crs?: string
 }
 
 export namespace SHPFILE {
-    export function readShpFile(options: TReadOptions): GeoJSON.FeatureCollection {
-        const shpData = readShp({ file: options.shp });
-        const dbfData = readDbf({ file: options.dbf, encoding: options.encoding });
+    export function read(shp: TFileLike, dbf: TFileLike, options: TReadOptions): GeoJSON.FeatureCollection {
+        const shpData = readShp(shp);
+        const dbfData = readDbf(dbf, { encoding: options.encoding });
 
         const features = new Array<GeoJSON.Feature>();
         shpData.geometries.forEach((geometry, index) => {
@@ -42,9 +39,9 @@ export namespace SHPFILE {
         return { type: 'FeatureCollection', features };
     }
 
-    export function writeShpFile(options: TWriteOptions) {
+    export function write(data: GeoJSON.FeatureCollection | Array<GeoJSON.Feature>, options: TWriteOptions = {}) {
         options.encoding ??= "utf-8";
-        let data = options.data instanceof Array ? options.data : options.data.features;
+        data = data instanceof Array ? data : data.features;
         data = data.filter(x => {
             if (options.crs) {
                 x.geometry = transformCoorinates(x.geometry, proj4.WGS84, options.crs);
@@ -76,8 +73,8 @@ export namespace SHPFILE {
             }
         }>();
         for (const [key, value] of shpTypedData) {
-            const shpData = writeShp({ data: value as any });
-            const dbfData = writeDbf({ data: value, encoding: options.encoding });
+            const shpData = writeShp(value as any);
+            const dbfData = writeDbf(value, { encoding: options.encoding });
             const prjData = new TextEncoder().encode(options.crs || contracts.crs.wkt.wgs84);
             const cpgData = new TextEncoder().encode(options.encoding.toUpperCase());
 
@@ -126,9 +123,8 @@ export namespace SHPFILE {
                 crs = await prjEntry.getData(new zip.TextWriter())
             }
 
-            const fc = readShpFile({
-                shp: await shpEntry.getData(new zip.Uint8ArrayWriter()),
-                dbf: await dbfEntry.getData(new zip.Uint8ArrayWriter()),
+            const fc = read(await shpEntry.getData(new zip.Uint8ArrayWriter()),
+                await dbfEntry.getData(new zip.Uint8ArrayWriter()), {
                 encoding,
                 crs
             });
@@ -139,8 +135,8 @@ export namespace SHPFILE {
         return result;
     }
 
-    export async function writeToZip(options: TWriteOptions) {
-        const temp = writeShpFile(options);
+    export async function writeToZip(data: GeoJSON.FeatureCollection | Array<GeoJSON.Feature>, options: TWriteOptions = {}) {
+        const temp = write(data, options);
 
         const zipWriter = new zip.ZipWriter(new zip.BlobWriter("application/zip"));
 

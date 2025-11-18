@@ -2,13 +2,11 @@ import { bbox, mergeArrayBuffers, TFileLike } from "../../utils";
 import { ShapeType } from "../shape-type";
 import { createReadRecord, createWriteRecord, TCanWriteGeoJSONGeometry } from "./record";
 
-export function readShp(options: {
-  file: TFileLike
-}) {
+export function readShp(file: TFileLike) {
   const view = new DataView(
-    options.file.buffer,
-    options.file.byteOffset,
-    options.file.byteLength
+    file.buffer,
+    file.byteOffset,
+    file.byteLength
   );
 
   const fileLength = view.getInt32(24, false) * 2;
@@ -28,15 +26,15 @@ export function readShp(options: {
   return { geometries, shapeType };
 }
 
-export function writeShp(options: {
+export function writeShp(
   data: Array<TCanWriteGeoJSONGeometry> | Array<GeoJSON.Feature<TCanWriteGeoJSONGeometry>> | GeoJSON.FeatureCollection<TCanWriteGeoJSONGeometry>
-}) {
-  if (!(options.data instanceof Array)) {
-    options.data = options.data.features;
+) {
+  if (!(data instanceof Array)) {
+    data = data.features;
   }
 
   let shapeType: ShapeType = ShapeType.NullShape;
-  const recordArrayBuffers = options.data.map((item, index) => {
+  const recordArrayBuffers = data.map((item, index) => {
     if (item.type === 'Feature') {
       item = item.geometry;
     }
@@ -60,7 +58,7 @@ export function writeShp(options: {
   headerView.setInt32(28, 1000, true);
   headerView.setInt32(32, shapeType, true);
 
-  const box = bbox(options.data, true);
+  const box = bbox(data, true);
   headerView.setFloat64(36, box[0], true);
   headerView.setFloat64(44, box[1], true);
   headerView.setFloat64(52, box[2], true);

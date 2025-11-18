@@ -1,14 +1,13 @@
 import { getArrayBufferFromDataView, TFileLike } from "../../utils";
 import { DbfField, DbfHeader } from "./utils";
 
-export function readDbf(options: {
-    file: TFileLike,
+export function readDbf(file: TFileLike, options: {
     encoding?: string;
-}) {
+} = {}) {
     const dataView = new DataView(
-        options.file.buffer,
-        options.file.byteOffset,
-        options.file.byteLength
+        file.buffer,
+        file.byteOffset,
+        file.byteLength
     );
 
     const header: DbfHeader = {
@@ -64,7 +63,7 @@ export function readDbf(options: {
                         case "N": // 数字
                         case "F": // 浮点
                             parsedValue = parseFloat(rawValue);
-                            if(parsedValue.toString()=== "NaN"){
+                            if (parsedValue.toString() === "NaN") {
                                 parsedValue = undefined
                             }
                             break;

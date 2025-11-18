@@ -1,4 +1,4 @@
-import { IBoundary, ILinearRing, ILineString, IPlacemark, IPoint, IPolygon } from "./schema";
+import { IBoundary, ILinearRing, ILineString, IPlacemark, IPoint, IPolygon, TMayBeArray } from "./schema";
 
 export function toCoordinates(g: GeoJSON.Point | GeoJSON.LineString | GeoJSON.Position[]) {
     if (g instanceof Array) return g.reduce((p, c) => p + c.join(",") + "\n", "");
@@ -8,6 +8,14 @@ export function toCoordinates(g: GeoJSON.Point | GeoJSON.LineString | GeoJSON.Po
 
 export function toPositions(coordinates: string): GeoJSON.Position[] {
     return coordinates.split("\n").map(c => c.split(",").map(Number));
+}
+
+export function actionMaybeArray<T>(data: TMayBeArray<T>, fn: (data: T) => void) {
+    if (data instanceof Array) {
+        data.forEach(fn);
+    } else {
+        fn(data);
+    }
 }
 
 export function toPlacemark(g: GeoJSON.Geometry): IPlacemark {
@@ -112,32 +120,47 @@ export function toGeometry(p: IPlacemark): GeoJSON.Geometry | undefined {
     const gs = new Array<Exclude<GeoJSON.Geometry, GeoJSON.GeometryCollection>>();
 
     if (p.Point) {
-        if (p.Point instanceof Array) {
-            p.Point.forEach(item => gs.push({
-                type: 'Point',
-                coordinates: toPositions(item.coordinates)[0]
-            }));
-        } else {
+        actionMaybeArray(p.Point, item => {
             gs.push({
                 type: 'Point',
-                coordinates: toPositions(p.Point.coordinates)[0]
+                coordinates: toPositions(item.coordinates)[0]
             })
-        }
+        });
     }
 
     if (p.LineString) {
-        if (p.LineString instanceof Array) {
-            
-        } else {
-
-        }
+        actionMaybeArray(p.LineString, item => {
+            gs.push({
+                type: "LineString",
+                coordinates: toPositions(item.coordinates)
+            });
+        });
     }
 
     if (p.Polygon) {
-        if (p.Polygon instanceof Array) {
+        actionMaybeArray(p.Polygon, item => {
+            const polygon: GeoJSON.Polygon = { type: "Polygon", coordinates: [] };
+            polygon.coordinates.push(toPositions(item.outerBoundaryIs.LinearRing.coordinates));
 
-        } else {
+            if (item.innerBoundaryIs) {
+                actionMaybeArray(item.innerBoundaryIs, innerItem => {
+                    polygon.coordinates.push(toPositions(innerItem.LinearRing.coordinates));
+                });
+            }
+        });
+    }
 
+    if (gs.length === 0) return undefined;
+    if (gs.length === 1) return gs[0];
+    if (gs.every(x => x.type === gs[0].type)) { // Multi
+        return {
+            type: `Multi${gs[0].type}`,
+            coordinates: gs.map(x => x.coordinates)
+        } as GeoJSON.Geometry;
+    } else {
+        return {
+            type: "GeometryCollection",
+            geometries: gs
         }
     }
 }
