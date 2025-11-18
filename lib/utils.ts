@@ -3,17 +3,38 @@ import { PROJJSONDefinition } from 'proj4/dist/lib/core';
 import Projection from 'proj4/dist/lib/Proj';
 
 export const contracts = {
-    crs:{
-        proj:{
-            wgs84 : "+proj=longlat +datum=WGS84 +no_defs +type=crs"
+    crs: {
+        proj: {
+            wgs84: "+proj=longlat +datum=WGS84 +no_defs +type=crs"
         },
-        wkt:{
+        wkt: {
             wgs84: `GEOGCS["GCS_WGS_1984",DATUM["D_WGS_1984",SPHEROID["WGS_1984",6378137.0,298.257223563]],PRIMEM["Greenwich",0.0],UNIT["Degree",0.0174532925199433]]`
         }
     }
 } as const;
 
 export type TFileLike = { buffer: ArrayBuffer; byteOffset?: number; byteLength?: number; }
+
+/**
+ * 将数组通过keySelector进行分组
+ * @param data 
+ * @param keySelector 
+ * @returns 
+ */
+export function groupBy<TV, TK>(data: Array<TV>, keySelector: (item: TV) => TK): Map<TK, Array<TV>> {
+    const result = new Map<TK, Array<TV>>();
+
+    data.forEach(item => {
+        const key = keySelector(item);
+        if (result.has(key)) {
+            result.get(key)?.push(item);
+        } else {
+            result.set(key, [item]);
+        }
+    });
+
+    return result;
+}
 
 /**
  * 判断一组点是否是顺时针方向
@@ -122,6 +143,13 @@ export function mergeArrayBuffers(arrayBuffers: Array<ArrayBuffer>) {
     return mergedArrayBuffer;
 }
 
+/**
+ * 将geojson数据坐标转换
+ * @param data 
+ * @param fromProj 
+ * @param toProj 
+ * @returns 
+ */
 export function transformCoorinates<T extends GeoJSON.FeatureCollection | GeoJSON.Feature | GeoJSON.Geometry>(data: T, fromProj: string | PROJJSONDefinition | Projection, toProj: string | PROJJSONDefinition | Projection): T {
     if (data.type === 'FeatureCollection') {
         return {
@@ -167,17 +195,57 @@ export function transformCoorinates<T extends GeoJSON.FeatureCollection | GeoJSO
     }
 }
 
-export function groupBy<TV,TK>(data: Array<TV>, keySelector: (item: TV) => TK) : Map<TK, Array<TV>>{
-    const result = new Map<TK, Array<TV>>();
+export function proj4ToWkt( proj4Def: string){
+    const p = proj4(proj4Def);
 
-    data.forEach(item=>{
-        const key = keySelector(item);
-        if(result.has(key)){
-            result.get(key)?.push(item);
-        }else{
-            result.set(key, [item]);
+    if(!p.oProj)
+        throw new Error(`Invalid proj4 definition : ${proj4Def}`);
+    
+    if((p.oProj as any)["projName"] === 'longlat'){
+        return buildGeogcsWkt(p.oProj)
+    }else{
+        return buildProjcsWkt(p.oProj)
+    }
+}
+
+function buildGeogcsWkt(projection: Projection){
+    const datum : string = (projection as any).datumName || 'Datum_Unknown';
+    const ellps = (projection as any).ellps || 'Sphere_Unknown';
+    const a = projection.a || 6378137.0; // 默认 WGS84
+    const b = projection.b || a;
+    const f = projection.es || ((a * a - b * b) / (a * a));
+
+    return `GEOGCS["GCS_${datum.replace(/\s+/g, '_')}", DATUM["${datum}", SPHEROID["${ellps}", ${a}, ${f.toFixed(10)}]], PRIMEM["Greenwich",0], UNIT["Degree",0.0174532925199433]]`;
+}
+
+function buildProjcsWkt(projection: Projection){ 
+    const geogcsWkt = buildGeogcsWkt(projection);
+
+    const params: string[] = [];
+    params.push(`PROJECTION["${projection.names[0]}"]`);
+
+    // 添加通用参数
+    const proj = projection as any;
+    if(proj.lat0 !== undefined) params.push(`PARAMETER["Latitude of Origin",${proj.lat0}]`);
+    if (proj.lon0 !== undefined) params.push(`PARAMETER["Central Meridian",${proj.lon0}]`);
+    if (proj.zone !== undefined) {
+        params.push(`PARAMETER["Zone",${proj.zone}]`);
+        // UTM 特殊处理，计算中央子午线
+        if (proj.projName === 'utm' && proj.lon0 === undefined) {
+            const centralMeridian = -183 + (proj.zone * 6);
+            params.push(`PARAMETER["Central Meridian",${centralMeridian}]`);
         }
-    });
+    }
+    if (proj.x0 !== undefined) params.push(`PARAMETER["False Easting",${proj.x0}]`);
+    if (proj.y0 !== undefined) params.push(`PARAMETER["False Northing",${proj.y0}]`);
+    if (proj.k0 !== undefined) params.push(`PARAMETER["Scale Factor",${proj.k0}]`);
 
-    return result;
+    // 单位
+    const unit = proj.projName === 'longlat' ? 'Degree' : 'Meter';
+    const unitValue = proj.projName === 'longlat' ? 0.0174532925199433 : 1.0;
+    params.push(`UNIT["${unit}",${unitValue}]`);
+
+     // 组合成最终的 PROJCS WKT
+    const pcsName = `PCS_${proj.projName.toUpperCase()}_${proj.zone || ''}`.replace(/_+/g, '_').replace(/_$/, '');
+    return `PROJCS["${pcsName}",${geogcsWkt},${params.join(',')}]`;
 }

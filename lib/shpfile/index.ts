@@ -1,6 +1,6 @@
 import { readShp, writeShp } from './shp';
 import { readDbf, writeDbf } from './dbf';
-import { contracts, groupBy, TFileLike, transformCoorinates } from '../utils';
+import { contracts, groupBy, proj4ToWkt, TFileLike, transformCoorinates } from '../utils';
 import proj4 from 'proj4';
 import * as zip from '@zip.js/zip.js';
 
@@ -75,7 +75,7 @@ export namespace SHPFILE {
         for (const [key, value] of shpTypedData) {
             const shpData = writeShp(value as any);
             const dbfData = writeDbf(value, { encoding: options.encoding });
-            const prjData = new TextEncoder().encode(options.crs || contracts.crs.wkt.wgs84);
+            const prjData = new TextEncoder().encode(options.crs ? proj4ToWkt(options.crs) : contracts.crs.wkt.wgs84);
             const cpgData = new TextEncoder().encode(options.encoding.toUpperCase());
 
             result.push({
