@@ -8,25 +8,16 @@ jobs:
   publish:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+       - uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
+       - uses: actions/setup-node@v4
+         with:
           node-version: '20'
-          registry-url: 'https://registry.npmjs.org/' # 指定发布到 npm 官方仓库
+          registry-url: 'https://registry.npmjs.org'
 
-      - name: Install yarn
-        run: npm install -g yarn
-
-      - name: Install dependencies
-        run: yarn
-
-      - name: Run build step
-        run: yarn build # 如果你的包需要构建，请确保有这一步
-
-      - name: Publish to npm
-        run: npm publish
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }} # 使用之前设置的 Secret
+      # Ensure npm 11.5.1 or later is installed
+       - name: Install yarn
+         run: npm install -g yarn@latest
+       - run: yarn
+       - run: yarn build
+       - run: npm publish
