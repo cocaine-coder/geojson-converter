@@ -39,6 +39,8 @@ export namespace WKT {
           .map((g) => stringify(g, includeZ))
           .join(", ")})`;
         break;
+
+      default: throw new Error(`geometry type error: ${geometry}`);
     }
 
     return wkt;
@@ -107,7 +109,7 @@ export namespace WKT {
         return ret;
       }
 
-      throw new Error(`不支持的wkt: ${wkt}`);
+      throw new Error(`parse error: ${wkt}`);
     }
   }
 }

@@ -90,10 +90,7 @@ export namespace SHPFILE {
         return result;
     }
 
-    export async function readFromZip(file: Blob | File | ArrayBuffer, options: {
-        forceEncoding?: string
-        forceCrs?: string
-    } = {}) {
+    export async function readFromZip(file: Blob | File | ArrayBuffer, options: TReadOptions = {}) {
         if (file instanceof ArrayBuffer) {
             file = new Blob([file], { type: 'application/zip' });
         }
@@ -121,12 +118,12 @@ export namespace SHPFILE {
                 continue;
             }
 
-            let encoding = options.forceEncoding;
+            let encoding = options.encoding;
             if (!encoding && cpgEntry) {
                 encoding = await cpgEntry.getData(new zip.TextWriter());
             }
 
-            let crs = options.forceCrs;
+            let crs = options.crs;
             if (!crs && prjEntry) {
                 crs = await prjEntry.getData(new zip.TextWriter())
             }
