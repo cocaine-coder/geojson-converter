@@ -119,7 +119,7 @@ export namespace SHPFILE {
             }
 
             let encoding = options.encoding;
-            if (!encoding && cpgEntry) {
+            if (cpgEntry) {
                 encoding = await cpgEntry.getData(new zip.TextWriter());
             }
 
