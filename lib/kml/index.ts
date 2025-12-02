@@ -15,17 +15,18 @@ export namespace KML {
 
         xmlDoc.Placemark = data.map<IPlacemark>(x => toPlacemark(x.geometry));
 
-        return new XMLBuilder({
-            attributeNamePrefix: "$",
-            ignoreAttributes: false,
-            cdataPropName: "__cdata"
-        }).build({
-            kml: {
-                $xmlns: "http://www.opengis.net/kml/2.2",
-                "$xmlns:gx": "http://www.google.com/kml/ext/2.2",
-                Document: xmlDoc
-            }
-        });
+        return `<?xml version="1.0" encoding="UTF-8"?>\n` +
+            new XMLBuilder({
+                attributeNamePrefix: "$",
+                ignoreAttributes: false,
+                cdataPropName: "__cdata"
+            }).build({
+                kml: {
+                    $xmlns: "http://www.opengis.net/kml/2.2",
+                    "$xmlns:gx": "http://www.google.com/kml/ext/2.2",
+                    Document: xmlDoc
+                }
+            });
     }
 
     export function parse(kml: string): Array<GeoJSON.Feature> {
