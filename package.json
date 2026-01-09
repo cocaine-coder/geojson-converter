@@ -1,6 +1,6 @@
 {
   "name": "geojson-converter-kit",
-  "version": "0.0.8",
+  "version": "0.0.9",
   "type": "module",
   "license": "MIT",
   "repository": {
@@ -42,6 +42,7 @@
   "devDependencies": {
     "@types/node": "^24.9.2",
     "@types/proj4": "^2.19.0",
+    "tsx": "^4.21.0",
     "typescript": "~5.9.2",
     "vite": "^7.1.5",
     "vite-plugin-dts": "^4.5.4",
@@ -50,10 +51,10 @@
   "dependencies": {
     "@types/geojson": "^7946.0.16",
     "@zip.js/zip.js": "^2.8.10",
+    "buffer": "^6.0.3",
     "fast-xml-parser": "^5.3.2",
     "iconv-lite": "^0.7.0",
     "proj4": "^2.20.0",
-    "buffer": "^6.0.3",
     "stream-browserify": "^3.0.0"
   }
 }

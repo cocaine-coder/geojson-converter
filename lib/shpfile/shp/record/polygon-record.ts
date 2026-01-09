@@ -25,12 +25,12 @@ export class PolygonRecord extends ShpRecord<GeoJSON.Polygon | GeoJSON.MultiPoly
             const nextSeek = arr[i + 1];
             const ring = coordinates.slice(seek, nextSeek);
 
-            if (isClockwise(ring) === false) {
-                // 如果逆时针则为左侧多边形的洞
-                p[p.length - 1].push(ring);
-            } else {
+            if (isClockwise(ring)) {
                 // 顺时针为新的多边形
                 p.push([ring]);
+            } else {
+                // 如果逆时针则为左侧多边形的洞
+                p[p.length - 1].push(ring);
             }
             return p;
         }, [] as GeoJSON.Position[][][]);

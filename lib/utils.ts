@@ -57,8 +57,8 @@ export function isClockwise(points: GeoJSON.Position[]): boolean | undefined {
         area += currentPoint[0] * nextPoint[1] - currentPoint[1] * nextPoint[0];
     }
 
-    if (area > 0) return true;
-    if (area < 0) return false;
+    if (area > 0) return false;
+    if (area < 0) return true;
 
     console.warn("Points are colinear.");
     return undefined;

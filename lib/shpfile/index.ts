@@ -104,14 +104,14 @@ export namespace SHPFILE {
             }
         });
         const entries = await zipReader.getEntries();
-        const shpfiles = groupBy(entries, x => x.filename.split(/[\\/]/g).pop()!.split(".")[0]);
+        const shpfiles = groupBy(entries.filter(x=>!x.directory), x => x.filename.split(/[\\/]/g).pop()!.split(".")[0]);
 
         const result = new Array<{ name: string, data: GeoJSON.FeatureCollection }>();
         for (const [key, value] of shpfiles) {
-            const shpEntry = value.find(x => x.filename.endsWith(".shp") && !x.directory) as zip.FileEntry;
-            const dbfEntry = value.find(x => x.filename.endsWith(".dbf") && !x.directory) as zip.FileEntry;
-            const cpgEntry = value.find(x => x.filename.endsWith(".cpg") && !x.directory) as zip.FileEntry;
-            const prjEntry = value.find(x => x.filename.endsWith(".prj") && !x.directory) as zip.FileEntry;
+            const shpEntry = value.find(x => x.filename.endsWith(".shp")) as zip.FileEntry;
+            const dbfEntry = value.find(x => x.filename.endsWith(".dbf")) as zip.FileEntry;
+            const cpgEntry = value.find(x => x.filename.endsWith(".cpg")) as zip.FileEntry;
+            const prjEntry = value.find(x => x.filename.endsWith(".prj")) as zip.FileEntry;
 
             if (!shpEntry || !dbfEntry) {
                 console.warn(`shp or dbf is missing,name: ${key}`);
